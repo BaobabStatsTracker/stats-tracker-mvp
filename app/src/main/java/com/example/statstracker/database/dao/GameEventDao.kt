@@ -1,7 +1,8 @@
 package com.example.statstracker.database.dao
 
 import androidx.room.*
-import com.example.statstracker.database.GameEventType
+import com.example.statstracker.model.GameEventType
+import com.example.statstracker.model.EventCount
 import com.example.statstracker.database.entity.GameEvent
 import kotlinx.coroutines.flow.Flow
 
@@ -91,21 +92,21 @@ interface GameEventDao {
     
     // Get event counts by type for a game (useful for statistics)
     @Query("""
-        SELECT event_type, COUNT(*) as count 
+        SELECT event_type as eventType, COUNT(*) as count 
         FROM game_event 
         WHERE game_id = :gameId 
         GROUP BY event_type
     """)
-    suspend fun getEventCountsByTypeForGame(gameId: Long): Map<GameEventType, Int>
+    suspend fun getEventCountsByTypeForGame(gameId: Long): List<EventCount>
     
     // Get event counts by type for a player across all games
     @Query("""
-        SELECT event_type, COUNT(*) as count 
+        SELECT event_type as eventType, COUNT(*) as count 
         FROM game_event 
         WHERE player_id = :playerId 
         GROUP BY event_type
     """)
-    suspend fun getEventCountsByTypeForPlayer(playerId: Long): Map<GameEventType, Int>
+    suspend fun getEventCountsByTypeForPlayer(playerId: Long): List<EventCount>
     
     // Get specific event by id
     @Query("SELECT * FROM game_event WHERE id = :eventId")
@@ -113,4 +114,11 @@ interface GameEventDao {
     
     @Query("SELECT * FROM game_event WHERE id = :eventId")
     fun getEventByIdFlow(eventId: Long): Flow<GameEvent?>
+}
+
+/**
+ * Extension functions to convert EventCount lists to Maps for convenience
+ */
+fun List<EventCount>.toMap(): Map<GameEventType, Int> {
+    return this.associate { it.eventType to it.count }
 }

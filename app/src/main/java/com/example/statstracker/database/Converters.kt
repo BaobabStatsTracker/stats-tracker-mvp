@@ -1,54 +1,8 @@
 package com.example.statstracker.database
 
 import androidx.room.TypeConverter
+import com.example.statstracker.model.*
 import java.time.LocalDate
-
-// --- Enums ---
-
-/**
- * Player's dominant hand preference for shooting/playing.
- */
-enum class PrimaryHand {
-    LEFT,
-    RIGHT
-}
-
-/**
- * Player's role on a team.
- */
-enum class PlayerRole {
-    STARTER,
-    BENCH,
-    COACH,
-    OTHER
-}
-
-/**
- * Team designation in a game context.
- */
-enum class GameTeamSide {
-    HOME,
-    AWAY
-}
-
-/**
- * Types of events that can occur during a basketball game.
- */
-enum class GameEventType {
-    TWO_POINTER_MADE,
-    TWO_POINTER_MISSED,
-    THREE_POINTER_MADE,
-    THREE_POINTER_MISSED,
-    FREE_THROW_MADE,
-    FREE_THROW_MISSED,
-    REBOUND,
-    ASSIST,
-    STEAL,
-    BLOCK,
-    TURNOVER,
-    FOUL,
-    SUBSTITUTION
-}
 
 // --- Type Converters ---
 
@@ -100,6 +54,17 @@ class Converters {
     @TypeConverter
     fun toGameEventType(eventTypeString: String): GameEventType {
         return GameEventType.valueOf(eventTypeString)
+    }
+    
+    // TrackingMode converters
+    @TypeConverter
+    fun fromTrackingMode(mode: TrackingMode): String {
+        return mode.name
+    }
+    
+    @TypeConverter
+    fun toTrackingMode(modeString: String): TrackingMode {
+        return TrackingMode.valueOf(modeString)
     }
     
     // LocalDate converters - stored as epoch days (INTEGER)

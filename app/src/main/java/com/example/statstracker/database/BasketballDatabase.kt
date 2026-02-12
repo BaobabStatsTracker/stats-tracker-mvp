@@ -21,7 +21,7 @@ import com.example.statstracker.database.entity.*
         GameEvent::class
     ],
     version = 1,
-    exportSchema = true
+    exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class BasketballDatabase : RoomDatabase() {

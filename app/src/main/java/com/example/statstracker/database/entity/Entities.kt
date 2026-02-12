@@ -5,43 +5,37 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.example.statstracker.database.GameEventType
-import com.example.statstracker.database.GameTeamSide
-import com.example.statstracker.database.PlayerRole
-import com.example.statstracker.database.PrimaryHand
+import com.example.statstracker.model.*
 import java.time.LocalDate
 
-// --- Player Entity ---
-
-/**
- * Represents a basketball player with personal information and physical attributes.
- */
+/* Represents a basketball player with personal information and physical attributes.
+*/
 @Entity(tableName = "player")
 data class Player(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    
+
     @ColumnInfo(name = "first_name")
     val firstName: String,
-    
+
     @ColumnInfo(name = "last_name")
     val lastName: String,
-    
+
     @ColumnInfo(name = "image")
     val image: String? = null,
-    
+
     @ColumnInfo(name = "height_cm")
     val heightCm: Int? = null,
-    
+
     @ColumnInfo(name = "wingspan_cm")
     val wingspanCm: Int? = null,
-    
+
     @ColumnInfo(name = "primary_hand")
     val primaryHand: PrimaryHand? = null,
-    
+
     @ColumnInfo(name = "date_of_birth")
     val dateOfBirth: LocalDate? = null,
-    
+
     @ColumnInfo(name = "notes")
     val notes: String? = null
 )
@@ -155,7 +149,13 @@ data class Game(
     val place: String? = null,
     
     @ColumnInfo(name = "notes")
-    val notes: String? = null
+    val notes: String? = null,
+    
+    @ColumnInfo(name = "home_tracking_mode")
+    val homeTrackingMode: TrackingMode,
+    
+    @ColumnInfo(name = "away_tracking_mode")
+    val awayTrackingMode: TrackingMode
 )
 
 // --- GameEvent Entity ---
@@ -194,7 +194,7 @@ data class GameEvent(
     val gameId: Long,
     
     @ColumnInfo(name = "player_id")
-    val playerId: Long,
+    val playerId: Long?,
     
     @ColumnInfo(name = "team")
     val team: GameTeamSide,
