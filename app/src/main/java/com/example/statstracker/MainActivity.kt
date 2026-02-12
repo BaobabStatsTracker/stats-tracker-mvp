@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.statstracker.database.example.PlayersScreen
+import com.example.statstracker.ui.screens.PlayersScreen
 import com.example.statstracker.ui.theme.StatsTrackerTheme
 
 class MainActivity : ComponentActivity() {
@@ -32,27 +32,9 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.padding(innerPadding),
                             onNavigateToPlayers = { currentScreen = "players" }
                         )
-                        "players" -> Column(
-                            modifier = Modifier.padding(innerPadding)
-                        ) {
-                            // Back button
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                IconButton(onClick = { currentScreen = "dashboard" }) {
-                                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                                }
-                                Text(
-                                    text = "Players",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
-                            }
-                            PlayersScreen()
-                        }
+                        "players" -> PlayersScreen(
+                            onNavigateBack = { currentScreen = "dashboard" }
+                        )
                     }
                 }
             }

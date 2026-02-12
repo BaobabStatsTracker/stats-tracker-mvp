@@ -207,7 +207,7 @@ class PlayersViewModelFactory(
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun PlayersScreen() {
+fun PlayersScreen(onNavigateBack: (() -> Unit)? = null) {
     val context = LocalContext.current
     val database = remember { DatabaseProvider.getInstance(context) }
     val repository = remember { BasketballRepository(database) }
@@ -241,8 +241,10 @@ fun PlayersScreen() {
                     ) 
                 },
                 navigationIcon = {
-                    IconButton(onClick = { /* TODO: Navigation back */ }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    onNavigateBack?.let {
+                        IconButton(onClick = it) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
