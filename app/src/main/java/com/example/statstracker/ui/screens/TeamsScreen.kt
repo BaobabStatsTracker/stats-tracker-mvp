@@ -28,6 +28,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.statstracker.database.DatabaseProvider
 import com.example.statstracker.database.entity.Team
+import com.example.statstracker.database.entity.Player
 import com.example.statstracker.database.repository.BasketballRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -60,8 +61,15 @@ class TeamsViewModel(
     private val _snackbarMessage = MutableStateFlow<String?>(null)
     val snackbarMessage: StateFlow<String?> = _snackbarMessage.asStateFlow()
     
+    private val _allPlayers = MutableStateFlow<List<Player>>(emptyList())
+    val allPlayers: StateFlow<List<Player>> = _allPlayers.asStateFlow()
+    
+    private val _teamPlayers = MutableStateFlow<List<Player>>(emptyList())
+    val teamPlayers: StateFlow<List<Player>> = _teamPlayers.asStateFlow()
+    
     init {
         loadTeams()
+        loadAllPlayers()
         insertSampleDataIfEmpty()
     }
     
@@ -73,6 +81,29 @@ class TeamsViewModel(
                 }
             } catch (e: Exception) {
                 _uiState.value = TeamsUiState.Error("Failed to load teams: ${e.message}")
+            }
+        }
+    }
+    
+    private fun loadAllPlayers() {
+        viewModelScope.launch {
+            try {
+                repository.getAllPlayersFlow().collect { players ->
+                    _allPlayers.value = players
+                }
+            } catch (e: Exception) {
+                showMessage("Failed to load players: ${e.message}")
+            }
+        }
+    }
+    
+    private fun loadTeamPlayers(teamId: Long) {
+        viewModelScope.launch {
+            try {
+                val players = repository.getPlayersForTeam(teamId)
+                _teamPlayers.value = players
+            } catch (e: Exception) {
+                showMessage("Failed to load team players: ${e.message}")
             }
         }
     }
@@ -149,17 +180,44 @@ class TeamsViewModel(
     
     fun openCreateDialog() {
         _selectedTeam.value = null
+        _teamPlayers.value = emptyList()
         _showDialog.value = true
     }
     
     fun openEditDialog(team: Team) {
         _selectedTeam.value = team
+        loadTeamPlayers(team.id)
         _showDialog.value = true
     }
     
     fun closeDialog() {
         _showDialog.value = false
         _selectedTeam.value = null
+        _teamPlayers.value = emptyList()
+    }
+    
+    fun addPlayerToTeam(player: Player, teamId: Long) {
+        viewModelScope.launch {
+            try {
+                repository.addPlayerToTeam(player.id, teamId)
+                loadTeamPlayers(teamId)
+                showMessage("${player.firstName} ${player.lastName} added to team")
+            } catch (e: Exception) {
+                showMessage("Failed to add player: ${e.message}")
+            }
+        }
+    }
+    
+    fun removePlayerFromTeam(player: Player, teamId: Long) {
+        viewModelScope.launch {
+            try {
+                repository.removePlayerFromTeam(player.id, teamId)
+                loadTeamPlayers(teamId)
+                showMessage("${player.firstName} ${player.lastName} removed from team")
+            } catch (e: Exception) {
+                showMessage("Failed to remove player: ${e.message}")
+            }
+        }
     }
     
     private fun showMessage(message: String) {
@@ -205,6 +263,8 @@ fun TeamsScreen(onNavigateBack: (() -> Unit)? = null) {
     val selectedTeam by viewModel.selectedTeam.collectAsState()
     val showDialog by viewModel.showDialog.collectAsState()
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
+    val allPlayers by viewModel.allPlayers.collectAsState()
+    val teamPlayers by viewModel.teamPlayers.collectAsState()
     
     val snackbarHostState = remember { SnackbarHostState() }
     
@@ -282,6 +342,8 @@ fun TeamsScreen(onNavigateBack: (() -> Unit)? = null) {
     if (showDialog) {
         TeamDialog(
             team = selectedTeam,
+            allPlayers = allPlayers,
+            teamPlayers = teamPlayers,
             onDismiss = { viewModel.closeDialog() },
             onSave = { team ->
                 if (selectedTeam != null) {
@@ -292,6 +354,16 @@ fun TeamsScreen(onNavigateBack: (() -> Unit)? = null) {
             },
             onDelete = { team ->
                 viewModel.deleteTeam(team)
+            },
+            onAddPlayer = { player ->
+                selectedTeam?.let { team ->
+                    viewModel.addPlayerToTeam(player, team.id)
+                }
+            },
+            onRemovePlayer = { player ->
+                selectedTeam?.let { team ->
+                    viewModel.removePlayerFromTeam(player, team.id)
+                }
             }
         )
     }
@@ -493,9 +565,13 @@ private fun TeamCard(
 @Composable
 private fun TeamDialog(
     team: Team?,
+    allPlayers: List<Player>,
+    teamPlayers: List<Player>,
     onDismiss: () -> Unit,
     onSave: (Team) -> Unit,
-    onDelete: (Team) -> Unit
+    onDelete: (Team) -> Unit,
+    onAddPlayer: (Player) -> Unit,
+    onRemovePlayer: (Player) -> Unit
 ) {
     val isEditing = team != null
     
@@ -558,6 +634,25 @@ private fun TeamDialog(
                     .height(120.dp),
                 maxLines = 5
             )
+            
+            // Players section (only show when editing existing team)
+            if (isEditing && team != null) {
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Text(
+                    text = "Team Players",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                PlayerManagementSection(
+                    allPlayers = allPlayers,
+                    teamPlayers = teamPlayers,
+                    onAddPlayer = onAddPlayer,
+                    onRemovePlayer = onRemovePlayer
+                )
+            }
             
             Spacer(modifier = Modifier.height(24.dp))
             
@@ -635,6 +730,138 @@ private fun TeamDialog(
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlayerManagementSection(
+    allPlayers: List<Player>,
+    teamPlayers: List<Player>,
+    onAddPlayer: (Player) -> Unit,
+    onRemovePlayer: (Player) -> Unit
+) {
+    val availablePlayers = allPlayers.filter { player ->
+        !teamPlayers.any { it.id == player.id }
+    }
+    
+    var showAddPlayersDialog by remember { mutableStateOf(false) }
+    
+    Column {
+        // Current team players
+        if (teamPlayers.isNotEmpty()) {
+            Text(
+                text = "Current Players (${teamPlayers.size})",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(teamPlayers) { player ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${player.firstName} ${player.lastName}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        IconButton(
+                            onClick = { onRemovePlayer(player) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Remove player",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+        
+        // Add players button
+        if (availablePlayers.isNotEmpty()) {
+            OutlinedButton(
+                onClick = { showAddPlayersDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Add Players")
+            }
+        } else {
+            Text(
+                text = if (teamPlayers.isEmpty()) "No players available" else "All players added",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
+    }
+    
+    // Add Players Dialog
+    if (showAddPlayersDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddPlayersDialog = false },
+            title = { Text("Add Players") },
+            text = {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                ) {
+                    items(availablePlayers) { player ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "${player.firstName} ${player.lastName}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                player.heightCm?.let { height ->
+                                    Text(
+                                        text = "${height}cm",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Button(
+                                onClick = {
+                                    onAddPlayer(player)
+                                },
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                Text("Add", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAddPlayersDialog = false }) {
+                    Text("Done")
                 }
             }
         )
