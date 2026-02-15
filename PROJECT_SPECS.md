@@ -42,26 +42,36 @@ EasyBuckets is a basketball statistics tracking app that allows users to record 
 ### 2.2 In-game stat tracking
 
 - Select a game and open a “Live Stats” or “Scorekeeper” screen.
-- Record events during the game for:
-  - **Per-player stats**: shots, rebounds, assists, steals, blocks, fouls, turnovers, etc.
+- Record enhanced events during the game for:
+  - **Per-player stats**: shots (with location and distance), rebounds, assists, steals, blocks, fouls, turnovers, etc.
   - **Per-team stats only** (no player breakdown) when user prefers a simpler mode.
+  - **Shot tracking**: Court location (X/Y coordinates), distance from basket, shot result.
+  - **Advanced metrics**: Assist tracking, foul types, point values.
 - The user can choose for each game:
   - Track home team by player and away team by team only.
   - Track both teams by player.
   - Track both teams by team only.
-- Support basic timer mode (optional at first version): the app can store a “timestamp” (seconds from game start) for each event.
+- Support basic timer mode (optional at first version): the app can store a "timestamp" (seconds from game start) for each event.
+- Real-time statistics calculation and display during game play.
+- Quarter-by-quarter statistics tracking and display.
 
 ### 2.3 Stats and insights
 
 - For a single game:
-  - Show box score by team and by player (if tracked per player).
-  - Show shooting percentages, points, rebounds, assists, etc.
+  - Show comprehensive box score by team and by player (if tracked per player).
+  - Display shooting percentages, points, rebounds, assists, steals, blocks, etc.
+  - Quarter-by-quarter statistical breakdowns.
+  - Shot chart visualization (when location data is available).
 - Across games:
-  - Show per-player aggregates (e.g., averages per game, total points, shooting splits).
+  - Show per-player aggregates (e.g., averages per game, season totals, shooting splits).
   - Show team aggregates (e.g., offensive/defensive rating, win–loss record, scoring distribution).
+  - Historical season comparisons and career progression.
+  - Advanced analytics: plus/minus, efficiency ratings, usage rates.
 - These insights can be progressively implemented; initial version can focus on:
-  - Per-game box score
-  - Simple per-player and per-team totals and averages
+  - Per-game box score with enhanced statistics
+  - Season-long player and team totals and averages
+  - Career progression tracking
+  - Top performers and leaderboards
 
 ### 2.4 Data sync
 
@@ -157,11 +167,70 @@ Represents a single stat event during a game.
     - FREE_THROW_MADE, FREE_THROW_MISSED
     - REBOUND, ASSIST, STEAL, BLOCK
     - TURNOVER, FOUL, SUBSTITUTION, OTHER
+- Enhanced tracking fields:
+  - `location_x` (Double?) – Court X coordinate (0-1)
+  - `location_y` (Double?) – Court Y coordinate (0-1)
+  - `shot_distance` (Double?) – Distance from basket in feet
+  - `shot_result` (String?) – 'made', 'missed', 'blocked'
+  - `assist_player_id` (Long?) – FK to Player for assists
+  - `foul_type` (String?) – 'personal', 'technical', 'flagrant'
+  - `point_value` (Int?) – 1, 2, or 3 points
 - Optional extensions:
   - `period` (Int?) – quarter/period number
-  - `meta_json` (String?) – flexible JSON field for future details (e.g., shot location)
+  - `meta_json` (String?) – flexible JSON field for future details
 
-### 3.6 Sync metadata (optional, internal)
+### 3.6 GameStats
+
+Represents aggregated statistics at the game level.
+
+- `id` (PK, Long, auto-generated)
+- `game_id` (FK → Game.id)
+- `team_id` (FK → Team.id, nullable for overall game stats)
+- `quarter` (Int?) – NULL for full game stats
+- Scoring statistics:
+  - `points`, `field_goals_made`, `field_goals_attempted`
+  - `three_pointers_made`, `three_pointers_attempted`
+  - `free_throws_made`, `free_throws_attempted`
+- Possession statistics:
+  - `rebounds_offensive`, `rebounds_defensive`
+  - `assists`, `steals`, `blocks`, `turnovers`
+- Defensive statistics:
+  - `fouls_personal`, `fouls_technical`
+- Time tracking:
+  - `time_played_seconds`
+- Computed properties for shooting percentages
+
+### 3.7 PlayerGameStats
+
+Represents individual player statistics for a specific game.
+
+- `id` (PK, Long, auto-generated)
+- `game_id` (FK → Game.id)
+- `player_id` (FK → Player.id)
+- `team_id` (FK → Team.id)
+- `quarter` (Int?) – NULL for full game stats
+- Same statistical categories as GameStats
+- Additional player-specific fields:
+  - `plus_minus` (Int) – Plus/minus rating
+  - `shot_chart_data` (String?) – JSON string for shot locations
+- Computed properties for percentages and totals
+
+### 3.8 PlayerSeasonStats
+
+Represents aggregated player statistics across a season.
+
+- `id` (PK, Long, auto-generated)
+- `player_id` (FK → Player.id)
+- `team_id` (FK → Team.id, nullable)
+- `season_year` (Int) – e.g., 2024
+- Game participation:
+  - `games_played`, `games_started`, `total_minutes_played`
+- Cumulative statistics (all same categories as PlayerGameStats)
+- Computed averages:
+  - `points_per_game`, `rebounds_per_game`, `assists_per_game`
+  - Shooting percentages and efficiency metrics
+
+### 3.9 Sync metadata (optional, internal)
 
 If needed, we can add a generic sync metadata table instead of `external_id` on each entity:
 
@@ -206,17 +275,22 @@ For now, using `external_id` and status fields on the main entities is sufficien
   - Team
   - TeamPlayer
   - Game
-  - GameEvent
+  - GameEvent (enhanced with shot tracking)
+  - GameStats (aggregated game statistics)
+  - PlayerGameStats (player performance per game)
+  - PlayerSeasonStats (season-long player statistics)
 - Use type converters for:
   - Enums (`PrimaryHand`, `PlayerRole`, `GameTeamSide`, `GameEventType`, `TrackingMode`)
   - `LocalDate` → persisted as ISO string or epoch day
 - DAOs expose:
   - CRUD for each entity.
+  - Statistics aggregation and calculation methods.
   - Relationship queries:
     - Team with players.
     - Player with teams.
     - Game with teams.
     - Game with events.
+    - Player game statistics and season totals.
 
 ### 4.3 Sync and networking
 

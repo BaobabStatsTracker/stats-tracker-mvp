@@ -133,4 +133,123 @@ class BasketballRepository constructor(
         database.relationDao().getAllGamesWithTeams()
     fun getAllGamesWithTeamsFlow(): Flow<List<GameWithTeams>> = 
         database.relationDao().getAllGamesWithTeamsFlow()
+    
+    // --- Game Statistics Operations ---
+    
+    suspend fun insertGameStats(gameStats: GameStats): Long = 
+        database.gameStatsDao().insert(gameStats)
+    suspend fun updateGameStats(gameStats: GameStats) = 
+        database.gameStatsDao().update(gameStats)
+    suspend fun upsertGameStats(gameStats: GameStats) = 
+        database.gameStatsDao().upsertGameStats(gameStats)
+    
+    suspend fun getGameOverallStats(gameId: Long): GameStats? = 
+        database.gameStatsDao().getGameOverallStats(gameId)
+    fun getGameOverallStatsFlow(gameId: Long): Flow<GameStats?> = 
+        database.gameStatsDao().getGameOverallStatsFlow(gameId)
+    
+    suspend fun getTeamGameStats(gameId: Long, teamId: Long): GameStats? = 
+        database.gameStatsDao().getTeamGameStats(gameId, teamId)
+    fun getTeamGameStatsFlow(gameId: Long, teamId: Long): Flow<GameStats?> = 
+        database.gameStatsDao().getTeamGameStatsFlow(gameId, teamId)
+    
+    suspend fun getAllTeamStatsForGame(gameId: Long): List<GameStats> = 
+        database.gameStatsDao().getAllTeamStatsForGame(gameId)
+    fun getAllTeamStatsForGameFlow(gameId: Long): Flow<List<GameStats>> = 
+        database.gameStatsDao().getAllTeamStatsForGameFlow(gameId)
+    
+    // --- Player Game Statistics Operations ---
+    
+    suspend fun insertPlayerGameStats(playerGameStats: PlayerGameStats): Long = 
+        database.playerGameStatsDao().insert(playerGameStats)
+    suspend fun updatePlayerGameStats(playerGameStats: PlayerGameStats) = 
+        database.playerGameStatsDao().update(playerGameStats)
+    suspend fun upsertPlayerGameStats(playerGameStats: PlayerGameStats) = 
+        database.playerGameStatsDao().upsertPlayerGameStats(playerGameStats)
+    
+    suspend fun getPlayerGameStats(gameId: Long, playerId: Long): PlayerGameStats? = 
+        database.playerGameStatsDao().getPlayerGameStats(gameId, playerId)
+    fun getPlayerGameStatsFlow(gameId: Long, playerId: Long): Flow<PlayerGameStats?> = 
+        database.playerGameStatsDao().getPlayerGameStatsFlow(gameId, playerId)
+    
+    suspend fun getAllPlayerStatsForGame(gameId: Long): List<PlayerGameStats> = 
+        database.playerGameStatsDao().getAllPlayerStatsForGame(gameId)
+    fun getAllPlayerStatsForGameFlow(gameId: Long): Flow<List<PlayerGameStats>> = 
+        database.playerGameStatsDao().getAllPlayerStatsForGameFlow(gameId)
+    
+    suspend fun getTeamPlayerStatsForGame(gameId: Long, teamId: Long): List<PlayerGameStats> = 
+        database.playerGameStatsDao().getTeamPlayerStatsForGame(gameId, teamId)
+    fun getTeamPlayerStatsForGameFlow(gameId: Long, teamId: Long): Flow<List<PlayerGameStats>> = 
+        database.playerGameStatsDao().getTeamPlayerStatsForGameFlow(gameId, teamId)
+    
+    suspend fun getPlayerAllGameStats(playerId: Long): List<PlayerGameStats> = 
+        database.playerGameStatsDao().getPlayerAllGameStats(playerId)
+    fun getPlayerAllGameStatsFlow(playerId: Long): Flow<List<PlayerGameStats>> = 
+        database.playerGameStatsDao().getPlayerAllGameStatsFlow(playerId)
+    
+    // --- Player Season Statistics Operations ---
+    
+    suspend fun insertPlayerSeasonStats(playerSeasonStats: PlayerSeasonStats): Long = 
+        database.playerSeasonStatsDao().insert(playerSeasonStats)
+    suspend fun updatePlayerSeasonStats(playerSeasonStats: PlayerSeasonStats) = 
+        database.playerSeasonStatsDao().update(playerSeasonStats)
+    suspend fun upsertPlayerSeasonStats(playerSeasonStats: PlayerSeasonStats) = 
+        database.playerSeasonStatsDao().upsertPlayerSeasonStats(playerSeasonStats)
+    
+    suspend fun getPlayerSeasonStats(playerId: Long, seasonYear: Int, teamId: Long? = null): PlayerSeasonStats? = 
+        database.playerSeasonStatsDao().getPlayerSeasonStats(playerId, seasonYear, teamId)
+    fun getPlayerSeasonStatsFlow(playerId: Long, seasonYear: Int, teamId: Long? = null): Flow<PlayerSeasonStats?> = 
+        database.playerSeasonStatsDao().getPlayerSeasonStatsFlow(playerId, seasonYear, teamId)
+    
+    suspend fun getPlayerCareerStats(playerId: Long): List<PlayerSeasonStats> = 
+        database.playerSeasonStatsDao().getPlayerCareerStats(playerId)
+    fun getPlayerCareerStatsFlow(playerId: Long): Flow<List<PlayerSeasonStats>> = 
+        database.playerSeasonStatsDao().getPlayerCareerStatsFlow(playerId)
+    
+    suspend fun getTeamSeasonStats(teamId: Long, seasonYear: Int): List<PlayerSeasonStats> = 
+        database.playerSeasonStatsDao().getTeamSeasonStats(teamId, seasonYear)
+    fun getTeamSeasonStatsFlow(teamId: Long, seasonYear: Int): Flow<List<PlayerSeasonStats>> = 
+        database.playerSeasonStatsDao().getTeamSeasonStatsFlow(teamId, seasonYear)
+    
+    suspend fun getAvailableSeasons(): List<Int> = 
+        database.playerSeasonStatsDao().getAvailableSeasons()
+    fun getAvailableSeasonsFlow(): Flow<List<Int>> = 
+        database.playerSeasonStatsDao().getAvailableSeasonsFlow()
+    
+    // --- Statistics Calculation & Processing ---
+    
+    /**
+     * Process a game event and update related statistics.
+     * This should be called whenever a new GameEvent is inserted.
+     */
+    suspend fun processGameEvent(event: GameEvent) {
+        // TODO: Implement logic to calculate and update:
+        // 1. PlayerGameStats for the player involved
+        // 2. GameStats for the team/game
+        // 3. PlayerSeasonStats for season totals
+        // This will be implemented in future iterations
+    }
+    
+    /**
+     * Recalculate all statistics for a game based on its events.
+     * Useful for data integrity checks or after bulk event imports.
+     */
+    suspend fun recalculateGameStats(gameId: Long) {
+        // TODO: Implement logic to:
+        // 1. Get all GameEvents for the game
+        // 2. Calculate stats from events
+        // 3. Update GameStats and PlayerGameStats tables
+        // This will be implemented in future iterations
+    }
+    
+    /**
+     * Update season statistics for a player after a game.
+     * This should be called after game completion.
+     */
+    suspend fun updatePlayerSeasonFromGame(playerId: Long, gameId: Long, seasonYear: Int) {
+        // TODO: Implement logic to:
+        // 1. Get PlayerGameStats for the specific game
+        // 2. Add those stats to PlayerSeasonStats
+        // This will be implemented in future iterations
+    }
 }

@@ -10,7 +10,7 @@ import com.example.statstracker.database.entity.*
 
 /**
  * Main Room database for the Basketball Stats Tracker app.
- * Manages all basketball-related data including players, teams, games, and events.
+ * Manages all basketball-related data including players, teams, games, events, and statistics.
  */
 @Database(
     entities = [
@@ -18,9 +18,12 @@ import com.example.statstracker.database.entity.*
         Team::class,
         TeamPlayer::class,
         Game::class,
-        GameEvent::class
+        GameEvent::class,
+        GameStats::class,
+        PlayerGameStats::class,
+        PlayerSeasonStats::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -32,6 +35,9 @@ abstract class BasketballDatabase : RoomDatabase() {
     abstract fun gameDao(): GameDao
     abstract fun gameEventDao(): GameEventDao
     abstract fun relationDao(): RelationDao
+    abstract fun gameStatsDao(): GameStatsDao
+    abstract fun playerGameStatsDao(): PlayerGameStatsDao
+    abstract fun playerSeasonStatsDao(): PlayerSeasonStatsDao
     
     companion object {
         @Volatile
@@ -47,7 +53,9 @@ abstract class BasketballDatabase : RoomDatabase() {
                     context.applicationContext,
                     BasketballDatabase::class.java,
                     "basketball_stats.db"
-                ).build()
+                )
+                .fallbackToDestructiveMigration() // For development - remove in production
+                .build()
                 INSTANCE = instance
                 instance
             }
