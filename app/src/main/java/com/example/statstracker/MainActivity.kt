@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.statstracker.ui.screens.PlayersScreen
+import com.example.statstracker.ui.screens.TeamsScreen
 import com.example.statstracker.ui.theme.StatsTrackerTheme
 
 class MainActivity : ComponentActivity() {
@@ -30,9 +32,13 @@ class MainActivity : ComponentActivity() {
                     when (currentScreen) {
                         "dashboard" -> Dashboard(
                             modifier = Modifier.padding(innerPadding),
-                            onNavigateToPlayers = { currentScreen = "players" }
+                            onNavigateToPlayers = { currentScreen = "players" },
+                            onNavigateToTeams = { currentScreen = "teams" }
                         )
                         "players" -> PlayersScreen(
+                            onNavigateBack = { currentScreen = "dashboard" }
+                        )
+                        "teams" -> TeamsScreen(
                             onNavigateBack = { currentScreen = "dashboard" }
                         )
                     }
@@ -45,7 +51,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Dashboard(
     modifier: Modifier = Modifier,
-    onNavigateToPlayers: () -> Unit
+    onNavigateToPlayers: () -> Unit,
+    onNavigateToTeams: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -89,6 +96,31 @@ fun Dashboard(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "View Players",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Teams button
+        ElevatedButton(
+            onClick = onNavigateToTeams,
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .height(56.dp),
+            colors = ButtonDefaults.elevatedButtonColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.Build,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "View Teams",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium
             )

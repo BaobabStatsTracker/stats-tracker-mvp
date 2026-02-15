@@ -688,7 +688,7 @@ private fun PlayerDialog(
                             expanded = false
                         }
                     )
-                    PrimaryHand.values().forEach { hand ->
+                    PrimaryHand.entries.forEach { hand ->
                         DropdownMenuItem(
                             text = { Text(hand.name) },
                             onClick = {
