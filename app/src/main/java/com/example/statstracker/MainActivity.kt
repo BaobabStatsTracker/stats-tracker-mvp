@@ -6,9 +6,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,7 +20,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.statstracker.ui.screens.PlayersScreen
 import com.example.statstracker.ui.screens.TeamsScreen
+import com.example.statstracker.ui.screens.NewGameScreen
+import com.example.statstracker.ui.screens.GameDashboardScreen
 import com.example.statstracker.ui.theme.StatsTrackerTheme
+import com.example.statstracker.database.DatabaseProvider
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,13 +32,21 @@ class MainActivity : ComponentActivity() {
         setContent {
             StatsTrackerTheme {
                 var currentScreen by remember { mutableStateOf("dashboard") }
+                var gameId by remember { mutableStateOf<Long?>(null) }
+                
+                // Initialize database
+                val database = DatabaseProvider.getInstance(this)
+                val repository = remember { 
+                    com.example.statstracker.database.repository.BasketballRepository(database) 
+                }
                 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (currentScreen) {
                         "dashboard" -> Dashboard(
                             modifier = Modifier.padding(innerPadding),
                             onNavigateToPlayers = { currentScreen = "players" },
-                            onNavigateToTeams = { currentScreen = "teams" }
+                            onNavigateToTeams = { currentScreen = "teams" },
+                            onNavigateToNewGame = { currentScreen = "new_game" }
                         )
                         "players" -> PlayersScreen(
                             onNavigateBack = { currentScreen = "dashboard" }
@@ -41,6 +54,26 @@ class MainActivity : ComponentActivity() {
                         "teams" -> TeamsScreen(
                             onNavigateBack = { currentScreen = "dashboard" }
                         )
+                        "new_game" -> NewGameScreen(
+                            repository = repository,
+                            onNavigateBack = { currentScreen = "dashboard" },
+                            onGameCreated = { createdGameId ->
+                                gameId = createdGameId
+                                currentScreen = "game_dashboard"
+                            }
+                        )
+                        "game_dashboard" -> {
+                            gameId?.let { id ->
+                                GameDashboardScreen(
+                                    gameId = id,
+                                    repository = repository,
+                                    onNavigateBack = { 
+                                        currentScreen = "dashboard"
+                                        gameId = null
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -52,7 +85,8 @@ class MainActivity : ComponentActivity() {
 fun Dashboard(
     modifier: Modifier = Modifier,
     onNavigateToPlayers: () -> Unit,
-    onNavigateToTeams: () -> Unit
+    onNavigateToTeams: () -> Unit,
+    onNavigateToNewGame: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -121,6 +155,31 @@ fun Dashboard(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "View Teams",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // New Game button
+        ElevatedButton(
+            onClick = onNavigateToNewGame,
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .height(56.dp),
+            colors = ButtonDefaults.elevatedButtonColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "New Game",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium
             )
