@@ -241,18 +241,28 @@ class GameDashboardViewModel(
 
     fun endQuarter() {
         pauseTimer()
+        // Always show confirmation dialog for ending any quarter
+        _uiState.value = _uiState.value.copy(showEndQuarterDialog = true)
+    }
+    
+    fun confirmEndQuarter() {
         val currentState = _uiState.value
+        _uiState.value = currentState.copy(showEndQuarterDialog = false)
         
         if (currentState.currentQuarter < 4 && !currentState.isInOvertime) {
             // Move to next quarter
-            _uiState.value = currentState.copy(
+            _uiState.value = _uiState.value.copy(
                 currentQuarter = currentState.currentQuarter + 1,
                 quarterTimeRemaining = 600L
             )
         } else {
-            // End of regulation or overtime - show dialog
-            _uiState.value = currentState.copy(showEndGameDialog = true)
+            // End of regulation or overtime - show end game dialog
+            _uiState.value = _uiState.value.copy(showEndGameDialog = true)
         }
+    }
+    
+    fun dismissEndQuarterDialog() {
+        _uiState.value = _uiState.value.copy(showEndQuarterDialog = false)
     }
 
     fun goToOvertime() {
@@ -328,6 +338,7 @@ data class GameDashboardUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val showEndGameDialog: Boolean = false,
+    val showEndQuarterDialog: Boolean = false,
     val isInOvertime: Boolean = false,
     val overtimeNumber: Int = 0 // 0 = regulation, 1 = OT1, 2 = OT2, etc.
 ) {

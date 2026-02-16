@@ -6,9 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -148,7 +146,7 @@ fun Dashboard(
             )
         ) {
             Icon(
-                imageVector = Icons.Default.Build,
+                imageVector = Icons.Default.Groups,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp)
             )

@@ -3,9 +3,10 @@ package com.example.statstracker.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -223,6 +224,39 @@ fun GameDashboardScreen(
             }
         )
     }
+    
+    // End Quarter Dialog
+    if (uiState.showEndQuarterDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissEndQuarterDialog,
+            title = { Text("End Quarter") },
+            text = {
+                Text(
+                    if (uiState.isInOvertime) {
+                        "Are you sure you want to end OT${uiState.overtimeNumber}?"
+                    } else if (uiState.currentQuarter < 4) {
+                        "Are you sure you want to end Quarter ${uiState.currentQuarter}?"
+                    } else {
+                        "Are you sure you want to end the 4th quarter? This will determine if the game goes to overtime."
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = viewModel::confirmEndQuarter
+                ) {
+                    Text("Yes, End Quarter")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = viewModel::dismissEndQuarterDialog
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -349,7 +383,7 @@ private fun ScoreboardSection(
                             contentColor = Color.White
                         )
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null)
+                        Icon(Icons.Default.Pause, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Pause")
                     }
@@ -362,7 +396,7 @@ private fun ScoreboardSection(
                         contentColor = Color.White
                     )
                 ) {
-                    Icon(Icons.Default.Call, contentDescription = null)
+                    Icon(Icons.Default.Stop, contentDescription = null)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(if (isInOvertime) "End OT" else if (currentQuarter < 4) "End Quarter" else "End Game")
                 }
