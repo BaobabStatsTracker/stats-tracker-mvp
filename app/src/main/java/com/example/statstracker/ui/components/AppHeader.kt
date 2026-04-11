@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -18,6 +19,7 @@ fun AppHeader(
     onMenuClick: () -> Unit
 ) {
     if (isTablet) {
+        Surface(shadowElevation = 4.dp) {
         TopAppBar(
             title = {
                 Text(
@@ -39,8 +41,14 @@ fun AppHeader(
                         contentDescription = "Live Broadcast"
                     )
                 }
-            }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.White,
+                titleContentColor = Color.Black,
+                actionIconContentColor = Color.Black
+            )
         )
+        }
     } else {
         CenterAlignedTopAppBar(
             title = {
@@ -69,12 +77,35 @@ data class DrawerMenuItem(
 )
 
 val drawerMenuItems = listOf(
-    DrawerMenuItem("Dashboard", Icons.Default.Dashboard, "dashboard"),
     DrawerMenuItem("Games", Icons.Default.SportsBasketball, "games"),
     DrawerMenuItem("Players", Icons.Default.Person, "players"),
     DrawerMenuItem("Teams", Icons.Default.Groups, "teams"),
     DrawerMenuItem("Settings", Icons.Default.Settings, "settings")
 )
+
+@Composable
+fun AppSidebar(
+    currentRoute: String,
+    onItemClick: (String) -> Unit
+) {
+    PermanentDrawerSheet(
+        modifier = Modifier.width(240.dp),
+        drawerContainerColor = Color.White
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
+        drawerMenuItems.forEach { item ->
+            NavigationDrawerItem(
+                icon = {
+                    Icon(imageVector = item.icon, contentDescription = item.label)
+                },
+                label = { Text(item.label) },
+                selected = currentRoute == item.route,
+                onClick = { onItemClick(item.route) },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+        }
+    }
+}
 
 @Composable
 fun AppDrawerContent(

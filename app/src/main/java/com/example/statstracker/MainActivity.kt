@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Groups
@@ -19,9 +20,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.launch
 import com.example.statstracker.ui.components.AppHeader
 import com.example.statstracker.ui.components.AppDrawerContent
+import com.example.statstracker.ui.components.AppSidebar
 import com.example.statstracker.ui.screens.PlayersScreen
 import com.example.statstracker.ui.screens.TeamsScreen
 import com.example.statstracker.ui.screens.NewGameScreen
@@ -66,13 +69,21 @@ class MainActivity : ComponentActivity() {
                             Scaffold(
                                 topBar = { AppHeader(isTablet = true, onMenuClick = {}) }
                             ) { innerPadding ->
-                                Dashboard(
-                                    modifier = Modifier.padding(innerPadding),
-                                    onNavigateToPlayers = { currentScreen = "players" },
-                                    onNavigateToTeams = { currentScreen = "teams" },
-                                    onNavigateToNewGame = { currentScreen = "new_game" },
-                                    onNavigateToGames = { currentScreen = "games" }
-                                )
+                                Row(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+                                    AppSidebar(
+                                        currentRoute = currentScreen,
+                                        onItemClick = { route -> currentScreen = route }
+                                    )
+                                    Dashboard(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .background(Color(0xFFF2F2F2)),
+                                        onNavigateToPlayers = { currentScreen = "players" },
+                                        onNavigateToTeams = { currentScreen = "teams" },
+                                        onNavigateToNewGame = { currentScreen = "new_game" },
+                                        onNavigateToGames = { currentScreen = "games" }
+                                    )
+                                }
                             }
                         } else {
                             ModalNavigationDrawer(
