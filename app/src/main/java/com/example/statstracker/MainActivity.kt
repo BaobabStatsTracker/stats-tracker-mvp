@@ -33,6 +33,8 @@ import com.example.statstracker.ui.screens.GamesScreen
 import com.example.statstracker.ui.screens.GameScreen
 import com.example.statstracker.ui.screens.TeamDetailScreen
 import com.example.statstracker.ui.screens.TeamFormScreen
+import com.example.statstracker.ui.screens.PlayerDetailScreen
+import com.example.statstracker.ui.screens.PlayerFormScreen
 import com.example.statstracker.ui.screens.SettingsScreen
 import com.example.statstracker.ui.theme.StatsTrackerTheme
 import com.example.statstracker.database.DatabaseProvider
@@ -49,6 +51,9 @@ class MainActivity : ComponentActivity() {
                 var selectedTeamId by remember { mutableStateOf<Long?>(null) }
                 var editingTeamId by remember { mutableStateOf<Long?>(null) }
                 var teamFormOpenedFromDetail by remember { mutableStateOf(false) }
+                var selectedPlayerId by remember { mutableStateOf<Long?>(null) }
+                var editingPlayerId by remember { mutableStateOf<Long?>(null) }
+                var playerFormOpenedFromDetail by remember { mutableStateOf(false) }
                 
                 // Initialize database
                 val database = DatabaseProvider.getInstance(this)
@@ -126,8 +131,68 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     "players" -> PlayersScreen(
-                        onNavigateBack = { currentScreen = "dashboard" }
+                        onNavigateBack = { currentScreen = "dashboard" },
+                        onPlayerClick = { playerId ->
+                            selectedPlayerId = playerId
+                            currentScreen = "player_detail"
+                        },
+                        onCreatePlayer = {
+                            editingPlayerId = null
+                            playerFormOpenedFromDetail = false
+                            currentScreen = "player_form"
+                        },
+                        onEditPlayer = { playerId ->
+                            editingPlayerId = playerId
+                            playerFormOpenedFromDetail = false
+                            currentScreen = "player_form"
+                        }
                     )
+                    "player_detail" -> {
+                        selectedPlayerId?.let { id ->
+                            key(id) {
+                                PlayerDetailScreen(
+                                    playerId = id,
+                                    repository = repository,
+                                    onNavigateBack = {
+                                        currentScreen = "players"
+                                        selectedPlayerId = null
+                                    },
+                                    onEditPlayer = { editId ->
+                                        editingPlayerId = editId
+                                        playerFormOpenedFromDetail = true
+                                        currentScreen = "player_form"
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    "player_form" -> {
+                        PlayerFormScreen(
+                            playerId = editingPlayerId,
+                            repository = repository,
+                            onNavigateBack = {
+                                if (playerFormOpenedFromDetail && selectedPlayerId != null) {
+                                    currentScreen = "player_detail"
+                                } else {
+                                    currentScreen = "players"
+                                }
+                                editingPlayerId = null
+                                playerFormOpenedFromDetail = false
+                            },
+                            onPlayerSaved = { savedId ->
+                                selectedPlayerId = savedId
+                                currentScreen = "player_detail"
+                                editingPlayerId = null
+                                playerFormOpenedFromDetail = false
+                            },
+                            onPlayerDeleted = {
+                                currentScreen = "players"
+                                selectedPlayerId = null
+                                editingPlayerId = null
+                                playerFormOpenedFromDetail = false
+                            }
+                        )
+                    }
                     "teams" -> TeamsScreen(
                         onNavigateBack = { currentScreen = "dashboard" },
                         onTeamClick = { teamId ->

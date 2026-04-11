@@ -1,6 +1,12 @@
 package com.example.statstracker.ui.screens
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,7 +15,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -18,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -55,12 +61,6 @@ class PlayersViewModel(
     
     private val _uiState = MutableStateFlow<PlayersUiState>(PlayersUiState.Loading)
     val uiState: StateFlow<PlayersUiState> = _uiState.asStateFlow()
-    
-    private val _selectedPlayer = MutableStateFlow<Player?>(null)
-    val selectedPlayer: StateFlow<Player?> = _selectedPlayer.asStateFlow()
-    
-    private val _showDialog = MutableStateFlow(false)
-    val showDialog: StateFlow<Boolean> = _showDialog.asStateFlow()
     
     private val _snackbarMessage = MutableStateFlow<String?>(null)
     val snackbarMessage: StateFlow<String?> = _snackbarMessage.asStateFlow()
@@ -131,7 +131,6 @@ class PlayersViewModel(
         viewModelScope.launch {
             try {
                 repository.insertPlayer(player)
-                closeDialog()
                 showMessage("Player added successfully!")
             } catch (e: Exception) {
                 showMessage("Failed to add player: ${e.message}")
@@ -143,7 +142,6 @@ class PlayersViewModel(
         viewModelScope.launch {
             try {
                 repository.updatePlayer(player)
-                closeDialog()
                 showMessage("Player updated successfully!")
             } catch (e: Exception) {
                 showMessage("Failed to update player: ${e.message}")
@@ -155,27 +153,11 @@ class PlayersViewModel(
         viewModelScope.launch {
             try {
                 repository.deletePlayer(player)
-                closeDialog()
                 showMessage("Player deleted successfully!")
             } catch (e: Exception) {
                 showMessage("Failed to delete player: ${e.message}")
             }
         }
-    }
-    
-    fun openCreateDialog() {
-        _selectedPlayer.value = null
-        _showDialog.value = true
-    }
-    
-    fun openEditDialog(player: Player) {
-        _selectedPlayer.value = player
-        _showDialog.value = true
-    }
-    
-    fun closeDialog() {
-        _showDialog.value = false
-        _selectedPlayer.value = null
     }
     
     private fun showMessage(message: String) {
@@ -208,7 +190,12 @@ class PlayersViewModelFactory(
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun PlayersScreen(onNavigateBack: (() -> Unit)? = null) {
+fun PlayersScreen(
+    onNavigateBack: (() -> Unit)? = null,
+    onPlayerClick: ((Long) -> Unit)? = null,
+    onCreatePlayer: (() -> Unit)? = null,
+    onEditPlayer: ((Long) -> Unit)? = null
+) {
     val context = LocalContext.current
     val database = remember { DatabaseProvider.getInstance(context) }
     val repository = remember { BasketballRepository(database) }
@@ -218,8 +205,6 @@ fun PlayersScreen(onNavigateBack: (() -> Unit)? = null) {
     )
     
     val uiState by viewModel.uiState.collectAsState()
-    val selectedPlayer by viewModel.selectedPlayer.collectAsState()
-    val showDialog by viewModel.showDialog.collectAsState()
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
     
     val snackbarHostState = remember { SnackbarHostState() }
@@ -260,7 +245,7 @@ fun PlayersScreen(onNavigateBack: (() -> Unit)? = null) {
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.openCreateDialog() },
+                onClick = { onCreatePlayer?.invoke() },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Player")
@@ -279,11 +264,12 @@ fun PlayersScreen(onNavigateBack: (() -> Unit)? = null) {
                 }
                 is PlayersUiState.Success -> {
                     if (state.players.isEmpty()) {
-                        EmptyPlayersState { viewModel.openCreateDialog() }
+                        EmptyPlayersState { onCreatePlayer?.invoke() }
                     } else {
                         PlayersList(
                             players = state.players,
-                            onEditClick = { player -> viewModel.openEditDialog(player) },
+                            onPlayerClick = { player -> onPlayerClick?.invoke(player.id) },
+                            onEditClick = { player -> onEditPlayer?.invoke(player.id) },
                             onDeleteClick = { player -> viewModel.deletePlayer(player) }
                         )
                     }
@@ -295,24 +281,6 @@ fun PlayersScreen(onNavigateBack: (() -> Unit)? = null) {
                 }
             }
         }
-    }
-    
-    // Player Edit/Create Dialog
-    if (showDialog) {
-        PlayerDialog(
-            player = selectedPlayer,
-            onDismiss = { viewModel.closeDialog() },
-            onSave = { player ->
-                if (selectedPlayer != null) {
-                    viewModel.updatePlayer(player)
-                } else {
-                    viewModel.insertPlayer(player)
-                }
-            },
-            onDelete = { player ->
-                viewModel.deletePlayer(player)
-            }
-        )
     }
 }
 
@@ -397,6 +365,7 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 @Composable
 private fun PlayersList(
     players: List<Player>,
+    onPlayerClick: (Player) -> Unit,
     onEditClick: (Player) -> Unit,
     onDeleteClick: (Player) -> Unit
 ) {
@@ -411,9 +380,14 @@ private fun PlayersList(
         ) { player ->
             PlayerCard(
                 player = player,
+                onClick = { onPlayerClick(player) },
                 onEditClick = { onEditClick(player) },
                 onDeleteClick = { onDeleteClick(player) },
-                modifier = Modifier.animateItemPlacement()
+                modifier = Modifier.animateItem(
+                    fadeInSpec = null,
+                    fadeOutSpec = null,
+                    placementSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                )
             )
         }
     }
@@ -423,41 +397,84 @@ private fun PlayersList(
 @Composable
 private fun PlayerCard(
     player: Player,
+    onClick: () -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val cardInteractionSource = remember { MutableInteractionSource() }
+    val isCardPressed by cardInteractionSource.collectIsPressedAsState()
+    val cardScale by animateFloatAsState(
+        targetValue = if (isCardPressed) 0.985f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "player_card_scale"
+    )
+
+    val editInteractionSource = remember { MutableInteractionSource() }
+    val isEditPressed by editInteractionSource.collectIsPressedAsState()
+    val editScale by animateFloatAsState(
+        targetValue = if (isEditPressed) 0.9f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "player_edit_button_scale"
+    )
+
+    val deleteInteractionSource = remember { MutableInteractionSource() }
+    val isDeletePressed by deleteInteractionSource.collectIsPressedAsState()
+    val deleteScale by animateFloatAsState(
+        targetValue = if (isDeletePressed) 0.9f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "player_delete_button_scale"
+    )
+
     Card(
-        modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = cardScale
+                scaleY = cardScale
+            },
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
         ),
-        onClick = onEditClick
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 5.dp
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        interactionSource = cardInteractionSource,
+        onClick = onClick
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
+                ) {
                     Text(
                         text = "${player.firstName} ${player.lastName}",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     
-                    // Physical attributes
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         player.heightCm?.let { height ->
                             AttributeChip(
@@ -475,7 +492,6 @@ private fun PlayerCard(
                     
                     Spacer(modifier = Modifier.height(8.dp))
                     
-                    // Primary hand badge and birth date
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -492,41 +508,63 @@ private fun PlayerCard(
                         }
                     }
                     
-                    // Notes
                     player.notes?.let { notes ->
                         if (notes.isNotBlank()) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = notes,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                            ) {
+                                Text(
+                                    text = notes,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
                 
-                // Action buttons
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     IconButton(
                         onClick = onEditClick,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier
+                            .size(40.dp)
+                            .graphicsLayer {
+                                scaleX = editScale
+                                scaleY = editScale
+                            },
+                        interactionSource = editInteractionSource,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     ) {
                         Icon(
-                            Icons.Default.Edit, 
-                            contentDescription = "Edit Player",
-                            tint = MaterialTheme.colorScheme.primary
+                            Icons.Default.Edit,
+                            contentDescription = "Edit Player"
                         )
                     }
                     IconButton(
                         onClick = onDeleteClick,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier
+                            .size(40.dp)
+                            .graphicsLayer {
+                                scaleX = deleteScale
+                                scaleY = deleteScale
+                            },
+                        interactionSource = deleteInteractionSource,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
                     ) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Delete Player",
-                            tint = MaterialTheme.colorScheme.error
+                            contentDescription = "Delete Player"
                         )
                     }
                 }
@@ -542,7 +580,7 @@ private fun AttributeChip(
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f),
         modifier = Modifier.padding(0.dp)
     ) {
         Text(
@@ -855,6 +893,7 @@ private fun PlayerCardPreview() {
                 notes = "4x NBA Champion"
             ),
             onEditClick = {},
+            onClick = {},
             onDeleteClick = {},
             modifier = Modifier.padding(16.dp)
         )
