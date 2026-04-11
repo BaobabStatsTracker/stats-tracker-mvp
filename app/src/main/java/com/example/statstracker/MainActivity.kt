@@ -31,6 +31,8 @@ import com.example.statstracker.ui.screens.NewGameScreen
 import com.example.statstracker.ui.screens.GameDashboardScreen
 import com.example.statstracker.ui.screens.GamesScreen
 import com.example.statstracker.ui.screens.GameScreen
+import com.example.statstracker.ui.screens.TeamDetailScreen
+import com.example.statstracker.ui.screens.TeamFormScreen
 import com.example.statstracker.ui.screens.SettingsScreen
 import com.example.statstracker.ui.theme.StatsTrackerTheme
 import com.example.statstracker.database.DatabaseProvider
@@ -44,6 +46,9 @@ class MainActivity : ComponentActivity() {
                 var currentScreen by remember { mutableStateOf("dashboard") }
                 var gameId by remember { mutableStateOf<Long?>(null) }
                 var selectedGameId by remember { mutableStateOf<Long?>(null) }
+                var selectedTeamId by remember { mutableStateOf<Long?>(null) }
+                var editingTeamId by remember { mutableStateOf<Long?>(null) }
+                var teamFormOpenedFromDetail by remember { mutableStateOf(false) }
                 
                 // Initialize database
                 val database = DatabaseProvider.getInstance(this)
@@ -124,8 +129,62 @@ class MainActivity : ComponentActivity() {
                         onNavigateBack = { currentScreen = "dashboard" }
                     )
                     "teams" -> TeamsScreen(
-                        onNavigateBack = { currentScreen = "dashboard" }
+                        onNavigateBack = { currentScreen = "dashboard" },
+                        onTeamClick = { teamId ->
+                            selectedTeamId = teamId
+                            currentScreen = "team_detail"
+                        },
+                        onCreateTeam = {
+                            editingTeamId = null
+                            teamFormOpenedFromDetail = false
+                            currentScreen = "team_form"
+                        },
+                        onEditTeam = { teamId ->
+                            editingTeamId = teamId
+                            teamFormOpenedFromDetail = false
+                            currentScreen = "team_form"
+                        }
                     )
+                    "team_detail" -> {
+                        selectedTeamId?.let { id ->
+                            key(id) {
+                                TeamDetailScreen(
+                                    teamId = id,
+                                    repository = repository,
+                                    onNavigateBack = {
+                                        currentScreen = "teams"
+                                        selectedTeamId = null
+                                    },
+                                    onEditTeam = { editId ->
+                                        editingTeamId = editId
+                                        teamFormOpenedFromDetail = true
+                                        currentScreen = "team_form"
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    "team_form" -> {
+                        TeamFormScreen(
+                            teamId = editingTeamId,
+                            repository = repository,
+                            onNavigateBack = {
+                                if (teamFormOpenedFromDetail && selectedTeamId != null) {
+                                    currentScreen = "team_detail"
+                                } else {
+                                    currentScreen = "teams"
+                                }
+                                editingTeamId = null
+                                teamFormOpenedFromDetail = false
+                            },
+                            onTeamSaved = { savedId ->
+                                selectedTeamId = savedId
+                                currentScreen = "team_detail"
+                                editingTeamId = null
+                                teamFormOpenedFromDetail = false
+                            }
+                        )
+                    }
                     "new_game" -> NewGameScreen(
                         repository = repository,
                         onNavigateBack = { currentScreen = "dashboard" },
