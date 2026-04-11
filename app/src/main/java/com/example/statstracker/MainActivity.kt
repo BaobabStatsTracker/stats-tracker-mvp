@@ -276,7 +276,8 @@ class MainActivity : ComponentActivity() {
                         onGameSelected = { selectedId ->
                             selectedGameId = selectedId
                             currentScreen = "game_detail"
-                        }
+                        },
+                        onCreateGame = { currentScreen = "new_game" }
                     )
                     "game_detail" -> {
                         selectedGameId?.let { id ->
