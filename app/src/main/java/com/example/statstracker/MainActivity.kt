@@ -31,6 +31,7 @@ import com.example.statstracker.ui.screens.NewGameScreen
 import com.example.statstracker.ui.screens.GameDashboardScreen
 import com.example.statstracker.ui.screens.GamesScreen
 import com.example.statstracker.ui.screens.GameScreen
+import com.example.statstracker.ui.screens.SettingsScreen
 import com.example.statstracker.ui.theme.StatsTrackerTheme
 import com.example.statstracker.database.DatabaseProvider
 
@@ -165,6 +166,9 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
+                    "settings" -> SettingsScreen(
+                        onNavigateBack = { currentScreen = "dashboard" }
+                    )
                 }
                 }
             }
