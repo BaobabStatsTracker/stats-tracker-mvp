@@ -38,6 +38,7 @@ fun GameScreen(
     var selectedPlayer by remember { mutableStateOf<Pair<Player, PlayerGameStats?>?>(null) }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
                 title = { 

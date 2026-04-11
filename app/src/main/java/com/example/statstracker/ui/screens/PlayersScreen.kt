@@ -232,6 +232,7 @@ fun PlayersScreen(onNavigateBack: (() -> Unit)? = null) {
     }
     
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
                 title = { 

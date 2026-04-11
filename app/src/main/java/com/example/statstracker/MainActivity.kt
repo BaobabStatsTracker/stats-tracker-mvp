@@ -67,6 +67,7 @@ class MainActivity : ComponentActivity() {
                     "dashboard" -> {
                         if (isTablet) {
                             Scaffold(
+                                contentWindowInsets = WindowInsets(0),
                                 topBar = { AppHeader(isTablet = true, onMenuClick = {}) }
                             ) { innerPadding ->
                                 Row(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
@@ -99,6 +100,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             ) {
                                 Scaffold(
+                                    contentWindowInsets = WindowInsets(0),
                                     topBar = {
                                         AppHeader(
                                             isTablet = false,
