@@ -14,9 +14,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+import com.example.statstracker.ui.components.AppHeader
+import com.example.statstracker.ui.components.AppDrawerContent
 import com.example.statstracker.ui.screens.PlayersScreen
 import com.example.statstracker.ui.screens.TeamsScreen
 import com.example.statstracker.ui.screens.NewGameScreen
@@ -42,62 +47,112 @@ class MainActivity : ComponentActivity() {
                     com.example.statstracker.database.repository.BasketballRepository(database) 
                 }
                 
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    when (currentScreen) {
-                        "dashboard" -> Dashboard(
-                            modifier = Modifier.padding(innerPadding),
-                            onNavigateToPlayers = { currentScreen = "players" },
-                            onNavigateToTeams = { currentScreen = "teams" },
-                            onNavigateToNewGame = { currentScreen = "new_game" },
-                            onNavigateToGames = { currentScreen = "games" }
-                        )
-                        "players" -> PlayersScreen(
-                            onNavigateBack = { currentScreen = "dashboard" }
-                        )
-                        "teams" -> TeamsScreen(
-                            onNavigateBack = { currentScreen = "dashboard" }
-                        )
-                        "new_game" -> NewGameScreen(
-                            repository = repository,
-                            onNavigateBack = { currentScreen = "dashboard" },
-                            onGameCreated = { createdGameId ->
-                                gameId = createdGameId
-                                currentScreen = "game_dashboard"
-                            }
-                        )
-                        "game_dashboard" -> {
-                            gameId?.let { id ->
-                                GameDashboardScreen(
-                                    gameId = id,
-                                    repository = repository,
-                                    onNavigateBack = { 
-                                        currentScreen = "dashboard"
-                                        gameId = null
-                                    }
-                                )
-                            }
+                var screenWidthDp by remember { mutableStateOf(0.dp) }
+                val density = LocalDensity.current
+                val isTablet = screenWidthDp >= 600.dp
+                val drawerState = rememberDrawerState(DrawerValue.Closed)
+                val scope = rememberCoroutineScope()
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .onSizeChanged { size ->
+                            screenWidthDp = with(density) { size.width.toDp() }
                         }
-                        "games" -> GamesScreen(
-                            repository = repository,
-                            onNavigateBack = { currentScreen = "dashboard" },
-                            onGameSelected = { selectedId ->
-                                selectedGameId = selectedId
-                                currentScreen = "game_detail"
-                            }
-                        )
-                        "game_detail" -> {
-                            selectedGameId?.let { id ->
-                                GameScreen(
-                                    gameId = id,
-                                    repository = repository,
-                                    onNavigateBack = { 
-                                        currentScreen = "games"
-                                        selectedGameId = null
-                                    }
+                ) {
+                when (currentScreen) {
+                    "dashboard" -> {
+                        if (isTablet) {
+                            Scaffold(
+                                topBar = { AppHeader(isTablet = true, onMenuClick = {}) }
+                            ) { innerPadding ->
+                                Dashboard(
+                                    modifier = Modifier.padding(innerPadding),
+                                    onNavigateToPlayers = { currentScreen = "players" },
+                                    onNavigateToTeams = { currentScreen = "teams" },
+                                    onNavigateToNewGame = { currentScreen = "new_game" },
+                                    onNavigateToGames = { currentScreen = "games" }
                                 )
+                            }
+                        } else {
+                            ModalNavigationDrawer(
+                                drawerState = drawerState,
+                                drawerContent = {
+                                    AppDrawerContent(
+                                        currentRoute = currentScreen,
+                                        onItemClick = { route ->
+                                            currentScreen = route
+                                            scope.launch { drawerState.close() }
+                                        }
+                                    )
+                                }
+                            ) {
+                                Scaffold(
+                                    topBar = {
+                                        AppHeader(
+                                            isTablet = false,
+                                            onMenuClick = { scope.launch { drawerState.open() } }
+                                        )
+                                    }
+                                ) { innerPadding ->
+                                    Dashboard(
+                                        modifier = Modifier.padding(innerPadding),
+                                        onNavigateToPlayers = { currentScreen = "players" },
+                                        onNavigateToTeams = { currentScreen = "teams" },
+                                        onNavigateToNewGame = { currentScreen = "new_game" },
+                                        onNavigateToGames = { currentScreen = "games" }
+                                    )
+                                }
                             }
                         }
                     }
+                    "players" -> PlayersScreen(
+                        onNavigateBack = { currentScreen = "dashboard" }
+                    )
+                    "teams" -> TeamsScreen(
+                        onNavigateBack = { currentScreen = "dashboard" }
+                    )
+                    "new_game" -> NewGameScreen(
+                        repository = repository,
+                        onNavigateBack = { currentScreen = "dashboard" },
+                        onGameCreated = { createdGameId ->
+                            gameId = createdGameId
+                            currentScreen = "game_dashboard"
+                        }
+                    )
+                    "game_dashboard" -> {
+                        gameId?.let { id ->
+                            GameDashboardScreen(
+                                gameId = id,
+                                repository = repository,
+                                onNavigateBack = { 
+                                    currentScreen = "dashboard"
+                                    gameId = null
+                                }
+                            )
+                        }
+                    }
+                    "games" -> GamesScreen(
+                        repository = repository,
+                        onNavigateBack = { currentScreen = "dashboard" },
+                        onGameSelected = { selectedId ->
+                            selectedGameId = selectedId
+                            currentScreen = "game_detail"
+                        }
+                    )
+                    "game_detail" -> {
+                        selectedGameId?.let { id ->
+                            GameScreen(
+                                gameId = id,
+                                repository = repository,
+                                onNavigateBack = { 
+                                    currentScreen = "games"
+                                    selectedGameId = null
+                                }
+                            )
+                        }
+                    }
+                }
                 }
             }
         }
