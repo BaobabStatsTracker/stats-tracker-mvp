@@ -63,27 +63,34 @@ fun GameDashboardScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         topBar = {
-            TopAppBar(
-                title = { 
-                    Column {
-                        Text(
-                            "${uiState.homeTeam?.name} vs ${uiState.awayTeam?.name}",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            uiState.game!!.date.toString(),
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
+            Surface(shadowElevation = 4.dp) {
+                TopAppBar(
+                    title = { 
+                        Column {
+                            Text(
+                                "${uiState.homeTeam?.name} vs ${uiState.awayTeam?.name}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                uiState.game!!.date.toString(),
+                                fontSize = 12.sp,
+                                color = Color.Black.copy(alpha = 0.7f)
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.White,
+                        titleContentColor = Color.Black,
+                        navigationIconContentColor = Color.Black
+                    )
+                )
+            }
         }
     ) { paddingValues ->
         Column(
