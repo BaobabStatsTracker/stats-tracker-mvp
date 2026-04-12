@@ -49,6 +49,8 @@ class BasketballRepository constructor(
     suspend fun getAllTeams(): List<Team> = database.teamDao().getAllTeams()
     fun getAllTeamsFlow(): Flow<List<Team>> = database.teamDao().getAllTeamsFlow()
     suspend fun getTeamById(teamId: Long): Team? = database.teamDao().getTeamById(teamId)
+    suspend fun searchTeamsByName(query: String): List<Team> = 
+        database.teamDao().searchTeamsByName(query)
     
     // --- Team-Player Relationships ---
     
@@ -75,6 +77,9 @@ class BasketballRepository constructor(
     
     suspend fun getTeamsForPlayer(playerId: Long): List<Team> = 
         database.teamPlayerDao().getTeamsForPlayer(playerId)
+    
+    suspend fun getTeamPlayersForTeam(teamId: Long): List<TeamPlayer> = 
+        database.teamPlayerDao().getTeamPlayersForTeam(teamId)
     
     // --- Game Operations ---
     
