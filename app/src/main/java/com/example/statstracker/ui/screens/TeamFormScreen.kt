@@ -28,6 +28,7 @@ data class TeamFormUiState(
     val teamName: String = "",
     val logoUrl: String = "",
     val notes: String = "",
+    val isOurTeam: Boolean = false,
     val isEditing: Boolean = false,
     val teamId: Long? = null,
     val allPlayers: List<Player> = emptyList(),
@@ -68,6 +69,7 @@ class TeamFormViewModel(
                         teamName = team.name,
                         logoUrl = team.logo ?: "",
                         notes = team.notes ?: "",
+                        isOurTeam = team.isOurTeam,
                         teamPlayers = players,
                         isLoading = false
                     )
@@ -108,6 +110,10 @@ class TeamFormViewModel(
         _uiState.value = _uiState.value.copy(notes = notes)
     }
 
+    fun toggleIsOurTeam() {
+        _uiState.value = _uiState.value.copy(isOurTeam = !_uiState.value.isOurTeam)
+    }
+
     fun addPlayerToTeam(player: Player) {
         val id = teamId ?: return
         viewModelScope.launch {
@@ -142,7 +148,8 @@ class TeamFormViewModel(
                         id = teamId,
                         name = state.teamName.trim(),
                         logo = state.logoUrl.trim().takeIf { it.isNotBlank() },
-                        notes = state.notes.trim().takeIf { it.isNotBlank() }
+                        notes = state.notes.trim().takeIf { it.isNotBlank() },
+                        isOurTeam = state.isOurTeam
                     )
                     repository.updateTeam(updated)
                     _savedTeamId.value = teamId
@@ -150,7 +157,8 @@ class TeamFormViewModel(
                     val newTeam = Team(
                         name = state.teamName.trim(),
                         logo = state.logoUrl.trim().takeIf { it.isNotBlank() },
-                        notes = state.notes.trim().takeIf { it.isNotBlank() }
+                        notes = state.notes.trim().takeIf { it.isNotBlank() },
+                        isOurTeam = state.isOurTeam
                     )
                     val newId = repository.insertTeam(newTeam)
                     _savedTeamId.value = newId
@@ -228,6 +236,7 @@ fun TeamFormScreen(
                     onNameChange = viewModel::updateName,
                     onLogoUrlChange = viewModel::updateLogoUrl,
                     onNotesChange = viewModel::updateNotes,
+                    onToggleIsOurTeam = viewModel::toggleIsOurTeam,
                     onAddPlayer = viewModel::addPlayerToTeam,
                     onRemovePlayer = viewModel::removePlayerFromTeam,
                     onSave = viewModel::saveTeam
@@ -243,6 +252,7 @@ private fun TeamFormContent(
     onNameChange: (String) -> Unit,
     onLogoUrlChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
+    onToggleIsOurTeam: () -> Unit,
     onAddPlayer: (Player) -> Unit,
     onRemovePlayer: (Player) -> Unit,
     onSave: () -> Unit
@@ -286,6 +296,33 @@ private fun TeamFormContent(
                     .height(120.dp),
                 maxLines = 5
             )
+        }
+
+        // Our club toggle
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Our club team",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = "Show this team's insights on the dashboard",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = uiState.isOurTeam,
+                    onCheckedChange = { onToggleIsOurTeam() }
+                )
+            }
         }
 
         // Player management (only in edit mode)

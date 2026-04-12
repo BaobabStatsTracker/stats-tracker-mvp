@@ -43,4 +43,10 @@ interface TeamDao {
     
     @Query("SELECT * FROM team WHERE name LIKE '%' || :searchQuery || '%' ORDER BY name")
     fun searchTeamsByNameFlow(searchQuery: String): Flow<List<Team>>
+
+    @Query("SELECT * FROM team WHERE is_our_team = 1 ORDER BY name")
+    suspend fun getOurTeams(): List<Team>
+
+    @Query("SELECT * FROM team WHERE is_our_team = 1 ORDER BY name")
+    fun getOurTeamsFlow(): Flow<List<Team>>
 }

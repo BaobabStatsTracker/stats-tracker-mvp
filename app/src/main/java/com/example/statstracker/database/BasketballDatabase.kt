@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.statstracker.database.dao.*
 import com.example.statstracker.database.entity.*
 
@@ -23,7 +25,7 @@ import com.example.statstracker.database.entity.*
         PlayerGameStats::class,
         PlayerSeasonStats::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -47,6 +49,12 @@ abstract class BasketballDatabase : RoomDatabase() {
          * Returns the singleton instance of the database.
          * Thread-safe implementation using double-checked locking pattern.
          */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE team ADD COLUMN is_our_team INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getInstance(context: Context): BasketballDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -54,7 +62,8 @@ abstract class BasketballDatabase : RoomDatabase() {
                     BasketballDatabase::class.java,
                     "basketball_stats.db"
                 )
-                .fallbackToDestructiveMigration() // For development - remove in production
+                .fallbackToDestructiveMigration()
+                .addMigrations(MIGRATION_3_4)
                 .build()
                 INSTANCE = instance
                 instance

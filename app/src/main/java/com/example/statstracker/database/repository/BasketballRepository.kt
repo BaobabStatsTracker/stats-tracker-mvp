@@ -51,7 +51,9 @@ class BasketballRepository constructor(
     suspend fun getTeamById(teamId: Long): Team? = database.teamDao().getTeamById(teamId)
     suspend fun searchTeamsByName(query: String): List<Team> = 
         database.teamDao().searchTeamsByName(query)
-    
+    suspend fun getOurTeams(): List<Team> = database.teamDao().getOurTeams()
+    fun getOurTeamsFlow(): Flow<List<Team>> = database.teamDao().getOurTeamsFlow()
+
     // --- Team-Player Relationships ---
     
     suspend fun addPlayerToTeam(

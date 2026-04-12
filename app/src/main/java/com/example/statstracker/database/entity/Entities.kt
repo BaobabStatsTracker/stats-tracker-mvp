@@ -68,7 +68,10 @@ data class Team(
     val logo: String? = null,
     
     @ColumnInfo(name = "notes")
-    val notes: String? = null
+    val notes: String? = null,
+
+    @ColumnInfo(name = "is_our_team")
+    val isOurTeam: Boolean = false
 )
 
 // --- TeamPlayer Entity (Join table with extra fields) ---
