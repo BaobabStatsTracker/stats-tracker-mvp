@@ -266,6 +266,13 @@ class NewGameViewModel(
                     s.awayTeam!!.id
                 }
 
+                val homeSelectedIds = if (s.homeTrackingMode == TrackingMode.BY_PLAYER)
+                    s.homePlayers.filter { it.isSelected }.joinToString(",") { it.player.id.toString() }.ifEmpty { null }
+                else null
+                val awaySelectedIds = if (s.awayTrackingMode == TrackingMode.BY_PLAYER)
+                    s.awayPlayers.filter { it.isSelected }.joinToString(",") { it.player.id.toString() }.ifEmpty { null }
+                else null
+
                 val game = Game(
                     homeTeamId = homeTeamId,
                     awayTeamId = awayTeamId,
@@ -273,7 +280,9 @@ class NewGameViewModel(
                     place = s.gamePlace,
                     notes = s.gameNotes,
                     homeTrackingMode = s.homeTrackingMode,
-                    awayTrackingMode = s.awayTrackingMode
+                    awayTrackingMode = s.awayTrackingMode,
+                    homeSelectedPlayerIds = homeSelectedIds,
+                    awaySelectedPlayerIds = awaySelectedIds
                 )
                 val gameId = repository.insertGame(game)
                 _uiState.value = s.copy(isLoading = false)

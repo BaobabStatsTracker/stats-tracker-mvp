@@ -7,7 +7,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +26,9 @@ import com.example.statstracker.database.entity.GameStats
 import com.example.statstracker.database.entity.Player
 import com.example.statstracker.database.entity.PlayerGameStats
 import com.example.statstracker.database.repository.BasketballRepository
+import com.example.statstracker.model.GameEventType
+import com.example.statstracker.model.GameTeamSide
+import com.example.statstracker.model.TrackingMode
 import com.example.statstracker.ui.viewmodel.GameDetailViewModel
 import java.time.format.DateTimeFormatter
 
@@ -152,7 +158,15 @@ fun GameScreen(
                                 teamStats = uiState.teamStats.find { it.teamId == uiState.gameWithDetails!!.awayTeam.id },
                                 onPlayerClick = { player, stats -> selectedPlayer = Pair(player, stats) }
                             )
-                            2 -> GameEventsTab(events = uiState.gameWithDetails!!.events)
+                            2 -> GameEventsTab(
+                                    events = uiState.gameWithDetails!!.events,
+                                    homeTeamName = uiState.gameWithDetails!!.homeTeam.name,
+                                    awayTeamName = uiState.gameWithDetails!!.awayTeam.name,
+                                    homePlayers = uiState.homePlayers,
+                                    awayPlayers = uiState.awayPlayers,
+                                    homeTrackingMode = uiState.gameWithDetails!!.game.homeTrackingMode,
+                                    awayTrackingMode = uiState.gameWithDetails!!.game.awayTrackingMode
+                                )
                         }
                     }
                 }
@@ -434,7 +448,15 @@ private fun PlayerCard(
 }
 
 @Composable
-private fun GameEventsTab(events: List<GameEvent>) {
+private fun GameEventsTab(
+    events: List<GameEvent>,
+    homeTeamName: String,
+    awayTeamName: String,
+    homePlayers: List<Player>,
+    awayPlayers: List<Player>,
+    homeTrackingMode: TrackingMode,
+    awayTrackingMode: TrackingMode
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -450,11 +472,18 @@ private fun GameEventsTab(events: List<GameEvent>) {
                 )
             }
         } else {
-            // Sort events by timestamp
             val sortedEvents = events.sortedBy { it.timestamp }
-            
+
             items(sortedEvents) { event ->
-                GameEventItem(event = event)
+                GameEventItem(
+                    event = event,
+                    homeTeamName = homeTeamName,
+                    awayTeamName = awayTeamName,
+                    homePlayers = homePlayers,
+                    awayPlayers = awayPlayers,
+                    homeTrackingMode = homeTrackingMode,
+                    awayTrackingMode = awayTrackingMode
+                )
             }
         }
     }
@@ -562,41 +591,122 @@ private fun StatRow(label: String, value: String) {
     }
 }
 
+private fun eventLabel(eventType: GameEventType): String = when (eventType) {
+    GameEventType.TWO_POINTER_MADE -> "2 Points"
+    GameEventType.TWO_POINTER_MISSED -> "2PT Missed"
+    GameEventType.THREE_POINTER_MADE -> "3 Points"
+    GameEventType.THREE_POINTER_MISSED -> "3PT Missed"
+    GameEventType.FREE_THROW_MADE -> "Free Throw"
+    GameEventType.FREE_THROW_MISSED -> "Free Throw Missed"
+    GameEventType.REBOUND -> "Rebound"
+    GameEventType.ASSIST -> "Assist"
+    GameEventType.STEAL -> "Steal"
+    GameEventType.BLOCK -> "Block"
+    GameEventType.TURNOVER -> "Turnover"
+    GameEventType.FOUL -> "Foul"
+    GameEventType.SUBSTITUTION -> "Substitution"
+}
+
 @Composable
-private fun GameEventItem(event: GameEvent) {
-    Row(
+private fun GameEventItem(
+    event: GameEvent,
+    homeTeamName: String,
+    awayTeamName: String,
+    homePlayers: List<Player>,
+    awayPlayers: List<Player>,
+    homeTrackingMode: TrackingMode,
+    awayTrackingMode: TrackingMode
+) {
+    val isHome = event.team == GameTeamSide.HOME
+    val teamName = if (isHome) homeTeamName else awayTeamName
+    val trackingMode = if (isHome) homeTrackingMode else awayTrackingMode
+    val players = if (isHome) homePlayers else awayPlayers
+    val player = if (trackingMode == TrackingMode.BY_PLAYER) {
+        event.playerId?.let { id -> players.find { it.id == id } }
+    } else null
+
+    val madeEvents = setOf(
+        GameEventType.TWO_POINTER_MADE,
+        GameEventType.THREE_POINTER_MADE,
+        GameEventType.FREE_THROW_MADE
+    )
+    val missedEvents = setOf(
+        GameEventType.TWO_POINTER_MISSED,
+        GameEventType.THREE_POINTER_MISSED,
+        GameEventType.FREE_THROW_MISSED
+    )
+    val eventIcon = when (event.eventType) {
+        in madeEvents -> Icons.Default.CheckCircle to Color(0xFF2E7D32)
+        in missedEvents -> Icons.Default.Cancel to Color(0xFFC62828)
+        else -> null
+    }
+
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        colors = CardDefaults.cardColors(
+            containerColor = if (isHome)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+            else
+                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+        )
     ) {
-        Column(
-            modifier = Modifier.weight(1f)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = event.eventType.name,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium
-            )
-            if (event.pointsValue != null) {
+            // Icon column
+            if (eventIcon != null) {
+                Icon(
+                    imageVector = eventIcon.first,
+                    contentDescription = null,
+                    tint = eventIcon.second,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .padding(end = 0.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
+            // Main content
+            Column(modifier = Modifier.weight(1f)) {
+                // Event label
                 Text(
-                    text = "${event.pointsValue} points",
+                    text = eventLabel(event.eventType),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                // Team name
+                Text(
+                    text = teamName,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
+                // Player name (BY_PLAYER only)
+                if (player != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "${player.firstName} ${player.lastName}",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
             }
-        }
-        
-        Column(
-            horizontalAlignment = Alignment.End
-        ) {
+
+            // Timestamp
             Text(
                 text = "${event.timestamp / 60}:${String.format("%02d", event.timestamp % 60)}",
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-            Text(
-                text = event.team.name,
-                fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
         }

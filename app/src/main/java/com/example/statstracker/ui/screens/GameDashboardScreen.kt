@@ -11,10 +11,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import kotlin.math.roundToInt
+import com.example.statstracker.database.entity.GameEvent
 import com.example.statstracker.database.entity.Player
 import com.example.statstracker.database.repository.BasketballRepository
 import com.example.statstracker.model.GameEventType
@@ -78,15 +82,18 @@ fun GameDashboardScreen(
         return
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .windowInsetsPadding(WindowInsets.safeDrawing)
+    ) {
         // Scoreboard Bar
         ScoreboardBar(
             uiState = uiState,
             onStartTimer = viewModel::startTimer,
             onPauseTimer = viewModel::pauseTimer,
-            onResetTimer = viewModel::resetTimer,
             onEndQuarter = viewModel::endQuarter,
             onNavigateBack = onNavigateBack,
+            onOpenEventsReview = viewModel::openEventsReview,
             formatTime = viewModel::formatTime
         )
 
@@ -174,6 +181,30 @@ fun GameDashboardScreen(
         )
     }
 
+    // Events Review Dialog
+    if (uiState.showEventsReview) {
+        EventsReviewDialog(
+            uiState = uiState,
+            onClose = viewModel::closeEventsReview,
+            onRequestDelete = viewModel::requestDeleteEvent
+        )
+    }
+
+    // Delete Event Confirmation
+    if (uiState.eventPendingDelete != null) {
+        AlertDialog(
+            onDismissRequest = viewModel::cancelDeleteEvent,
+            title = { Text("Delete Event") },
+            text = { Text("Remove this logged event? This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmDeleteEvent) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelDeleteEvent) { Text("Cancel") }
+            }
+        )
+    }
+
     // End Game Dialog
     if (uiState.showEndGameDialog) {
         AlertDialog(
@@ -203,9 +234,9 @@ private fun ScoreboardBar(
     uiState: GameDashboardUiState,
     onStartTimer: () -> Unit,
     onPauseTimer: () -> Unit,
-    onResetTimer: () -> Unit,
     onEndQuarter: () -> Unit,
     onNavigateBack: () -> Unit,
+    onOpenEventsReview: () -> Unit,
     formatTime: (Long) -> String
 ) {
     Surface(
@@ -290,17 +321,12 @@ private fun ScoreboardBar(
                     ) {
                         Icon(Icons.Default.Stop, contentDescription = "End Quarter", modifier = Modifier.size(18.dp), tint = Color.White)
                     }
-                    // Reset
-                    FilledIconButton(
-                        onClick = onResetTimer,
-                        modifier = Modifier.size(32.dp),
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.outline
-                        )
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Reset", modifier = Modifier.size(18.dp), tint = Color.White)
-                    }
                 }
+            }
+
+            // Review events button
+            IconButton(onClick = onOpenEventsReview, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.List, contentDescription = "Review Events", modifier = Modifier.size(20.dp), tint = Color.Black)
             }
 
             // Away team + score
@@ -767,5 +793,131 @@ private fun OutlinedEventButton(
         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
     ) {
         Text(text, fontSize = 12.sp)
+    }
+}
+
+private fun eventLabel(eventType: GameEventType): String = when (eventType) {
+    GameEventType.TWO_POINTER_MADE -> "2PT Made"
+    GameEventType.TWO_POINTER_MISSED -> "2PT Missed"
+    GameEventType.THREE_POINTER_MADE -> "3PT Made"
+    GameEventType.THREE_POINTER_MISSED -> "3PT Missed"
+    GameEventType.FREE_THROW_MADE -> "FT Made"
+    GameEventType.FREE_THROW_MISSED -> "FT Missed"
+    GameEventType.REBOUND -> "Rebound"
+    GameEventType.ASSIST -> "Assist"
+    GameEventType.STEAL -> "Steal"
+    GameEventType.BLOCK -> "Block"
+    GameEventType.TURNOVER -> "Turnover"
+    GameEventType.FOUL -> "Foul"
+    GameEventType.SUBSTITUTION -> "Substitution"
+}
+
+@Composable
+private fun EventsReviewDialog(
+    uiState: GameDashboardUiState,
+    onClose: () -> Unit,
+    onRequestDelete: (GameEvent) -> Unit
+) {
+    Dialog(onDismissRequest = onClose) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 480.dp)
+        ) {
+            Column {
+                // Header
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Logged Events (${uiState.gameEvents.size})",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+                HorizontalDivider()
+
+                if (uiState.gameEvents.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No events logged yet.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                } else {
+                    val sortedEvents = uiState.gameEvents.sortedByDescending { it.timestamp }
+                    val allPlayers = uiState.homePlayers + uiState.awayPlayers
+                    val homeTeamName = uiState.homeTeam?.name ?: "Home"
+                    val awayTeamName = uiState.awayTeam?.name ?: "Away"
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(vertical = 4.dp)
+                    ) {
+                        items(sortedEvents, key = { it.id }) { event ->
+                            val teamName = if (event.team == GameTeamSide.HOME) homeTeamName else awayTeamName
+                            val player = event.playerId?.let { pid -> allPlayers.find { it.id == pid } }
+                            val timeStr = "%d:%02d".format(event.timestamp / 60, event.timestamp % 60)
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = timeStr,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    modifier = Modifier.width(44.dp)
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = eventLabel(event.eventType),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = if (player != null) "${player.firstName} ${player.lastName} · $teamName"
+                                               else teamName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { onRequestDelete(event) },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete event",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+                        }
+                    }
+                }
+            }
+        }
     }
 }

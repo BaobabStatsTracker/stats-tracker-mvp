@@ -23,7 +23,7 @@ import com.example.statstracker.database.entity.*
         PlayerGameStats::class,
         PlayerSeasonStats::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -45,10 +45,19 @@ class GameDashboardViewModel(
                 val homeTeam = repository.getTeamById(game.homeTeamId)
                 val awayTeam = repository.getTeamById(game.awayTeamId)
 
-                val homePlayers = if (game.homeTrackingMode == TrackingMode.BY_PLAYER)
-                    repository.getPlayersForTeam(game.homeTeamId) else emptyList()
-                val awayPlayers = if (game.awayTrackingMode == TrackingMode.BY_PLAYER)
-                    repository.getPlayersForTeam(game.awayTeamId) else emptyList()
+                val homePlayers = if (game.homeTrackingMode == TrackingMode.BY_PLAYER) {
+                    val all = repository.getPlayersForTeam(game.homeTeamId)
+                    val selectedIds = game.homeSelectedPlayerIds
+                        ?.split(",")?.mapNotNull { it.trim().toLongOrNull() }?.toSet()
+                    if (!selectedIds.isNullOrEmpty()) all.filter { it.id in selectedIds } else all
+                } else emptyList()
+
+                val awayPlayers = if (game.awayTrackingMode == TrackingMode.BY_PLAYER) {
+                    val all = repository.getPlayersForTeam(game.awayTeamId)
+                    val selectedIds = game.awaySelectedPlayerIds
+                        ?.split(",")?.mapNotNull { it.trim().toLongOrNull() }?.toSet()
+                    if (!selectedIds.isNullOrEmpty()) all.filter { it.id in selectedIds } else all
+                } else emptyList()
 
                 // Load jersey numbers
                 val homeTeamPlayers = if (game.homeTrackingMode == TrackingMode.BY_PLAYER)
@@ -366,6 +375,30 @@ class GameDashboardViewModel(
         }
     }
 
+    // --- Events Review ---
+
+    fun openEventsReview() {
+        _uiState.value = _uiState.value.copy(showEventsReview = true)
+    }
+
+    fun closeEventsReview() {
+        _uiState.value = _uiState.value.copy(showEventsReview = false, eventPendingDelete = null)
+    }
+
+    fun requestDeleteEvent(event: GameEvent) {
+        _uiState.value = _uiState.value.copy(eventPendingDelete = event)
+    }
+
+    fun cancelDeleteEvent() {
+        _uiState.value = _uiState.value.copy(eventPendingDelete = null)
+    }
+
+    fun confirmDeleteEvent() {
+        val event = _uiState.value.eventPendingDelete ?: return
+        _uiState.value = _uiState.value.copy(eventPendingDelete = null)
+        deleteEvent(event.id)
+    }
+
     // --- Time Played Persistence ---
 
     /**
@@ -464,6 +497,9 @@ data class GameDashboardUiState(
     val showEventModal: Boolean = false,
     val selectedPlayerForEvent: Pair<Long, GameTeamSide>? = null,
     val selectedTeamForEvent: GameTeamSide? = null,
+    // Events review
+    val showEventsReview: Boolean = false,
+    val eventPendingDelete: GameEvent? = null,
     // Per-player time tracking (in-memory during live game)
     // Maps playerId → elapsed-seconds value when they entered the court
     val playerCourtEntryTimes: Map<Long, Int> = emptyMap(),

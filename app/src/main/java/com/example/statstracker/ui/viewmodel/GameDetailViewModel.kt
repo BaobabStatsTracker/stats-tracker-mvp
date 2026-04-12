@@ -57,9 +57,19 @@ class GameDetailViewModel(
                     playerStats = calculatePlayerStatsFromEvents(gameWithDetails.events)
                 }
                 
-                // Load players for both teams
-                val homePlayers = repository.getPlayersForTeam(gameWithDetails.homeTeam.id)
-                val awayPlayers = repository.getPlayersForTeam(gameWithDetails.awayTeam.id)
+                // Load players for both teams — filter to only selected players when tracked by player
+                val homeSelectedIds = gameWithDetails.game.homeSelectedPlayerIds
+                    ?.split(",")?.mapNotNull { it.trim().toLongOrNull() }?.toSet()
+                val awaySelectedIds = gameWithDetails.game.awaySelectedPlayerIds
+                    ?.split(",")?.mapNotNull { it.trim().toLongOrNull() }?.toSet()
+
+                val allHomePlayers = repository.getPlayersForTeam(gameWithDetails.homeTeam.id)
+                val allAwayPlayers = repository.getPlayersForTeam(gameWithDetails.awayTeam.id)
+
+                val homePlayers = if (!homeSelectedIds.isNullOrEmpty())
+                    allHomePlayers.filter { it.id in homeSelectedIds } else allHomePlayers
+                val awayPlayers = if (!awaySelectedIds.isNullOrEmpty())
+                    allAwayPlayers.filter { it.id in awaySelectedIds } else allAwayPlayers
 
                 // Debug logging
                 println("GameDetail Debug: Game ${gameId}")

@@ -166,7 +166,13 @@ data class Game(
     val homeTrackingMode: TrackingMode,
     
     @ColumnInfo(name = "away_tracking_mode")
-    val awayTrackingMode: TrackingMode
+    val awayTrackingMode: TrackingMode,
+
+    @ColumnInfo(name = "home_selected_player_ids")
+    val homeSelectedPlayerIds: String? = null,
+
+    @ColumnInfo(name = "away_selected_player_ids")
+    val awaySelectedPlayerIds: String? = null
 )
 
 // --- GameEvent Entity ---
