@@ -86,19 +86,23 @@ class TeamsViewModel(
                     val sampleTeams = listOf(
                         Team(
                             name = "Los Angeles Lakers",
-                            notes = "Purple and Gold, 17 NBA Championships"
-                        ),
-                        Team(
-                            name = "Golden State Warriors",
-                            notes = "Bay Area team, known for their 3-point shooting"
+                            notes = "Purple and Gold, 17 NBA Championships. Home arena: Crypto.com Arena"
                         ),
                         Team(
                             name = "Boston Celtics",
-                            notes = "Green and white, one of the most successful franchises"
+                            notes = "Most decorated franchise with 18 NBA Championships. Home arena: TD Garden"
                         ),
                         Team(
-                            name = "Chicago Bulls",
-                            notes = "Michael Jordan's team, 6 championships in the 90s"
+                            name = "Golden State Warriors",
+                            notes = "Dynasty of the 2010s-2020s, 7 NBA Championships. Home arena: Chase Center"
+                        ),
+                        Team(
+                            name = "Milwaukee Bucks",
+                            notes = "2021 NBA Champions, home of Giannis. Home arena: Fiserv Forum"
+                        ),
+                        Team(
+                            name = "Denver Nuggets",
+                            notes = "2023 NBA Champions, home of Nikola Jokic. Home arena: Ball Arena"
                         )
                     )
                     sampleTeams.forEach { team ->

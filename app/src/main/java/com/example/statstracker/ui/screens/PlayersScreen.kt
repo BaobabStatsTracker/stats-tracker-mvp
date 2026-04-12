@@ -36,6 +36,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.statstracker.database.DatabaseProvider
 import com.example.statstracker.model.PrimaryHand
 import com.example.statstracker.database.entity.Player
+import com.example.statstracker.database.entity.Team
 import com.example.statstracker.database.repository.BasketballRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -87,38 +88,140 @@ class PlayersViewModel(
             try {
                 val existingPlayers = repository.getAllPlayers()
                 if (existingPlayers.isEmpty()) {
-                    val samplePlayers = listOf(
-                        Player(
-                            firstName = "LeBron",
-                            lastName = "James",
-                            heightCm = 206,
-                            wingspanCm = 214,
-                            primaryHand = PrimaryHand.RIGHT,
-                            dateOfBirth = LocalDate.of(1984, 12, 30),
-                            notes = "4x NBA Champion"
+                    // Ensure teams exist
+                    val existingTeams = repository.getAllTeams()
+                    val teamMap = if (existingTeams.isEmpty()) {
+                        val teams = listOf(
+                            Team(name = "Los Angeles Lakers", notes = "Purple and Gold, 17 NBA Championships. Home arena: Crypto.com Arena"),
+                            Team(name = "Boston Celtics", notes = "Most decorated franchise with 18 NBA Championships. Home arena: TD Garden"),
+                            Team(name = "Golden State Warriors", notes = "Dynasty of the 2010s-2020s, 7 NBA Championships. Home arena: Chase Center"),
+                            Team(name = "Milwaukee Bucks", notes = "2021 NBA Champions, home of Giannis. Home arena: Fiserv Forum"),
+                            Team(name = "Denver Nuggets", notes = "2023 NBA Champions, home of Nikola Jokic. Home arena: Ball Arena")
+                        )
+                        teams.associate { it.name to repository.insertTeam(it) }
+                    } else {
+                        existingTeams.associate { it.name to it.id }
+                    }
+
+                    data class SamplePlayerData(
+                        val firstName: String,
+                        val lastName: String,
+                        val heightCm: Int,
+                        val wingspanCm: Int,
+                        val hand: PrimaryHand,
+                        val dob: LocalDate,
+                        val notes: String,
+                        val jersey: Int
+                    )
+
+                    val playersByTeam = mapOf(
+                        "Los Angeles Lakers" to listOf(
+                            SamplePlayerData("LeBron", "James", 206, 214, PrimaryHand.RIGHT, LocalDate.of(1984, 12, 30), "4x NBA Champion, 4x MVP", 23),
+                            SamplePlayerData("Anthony", "Davis", 208, 227, PrimaryHand.RIGHT, LocalDate.of(1993, 3, 11), "8x All-Star, 2020 NBA Champion", 3),
+                            SamplePlayerData("Austin", "Reaves", 196, 201, PrimaryHand.RIGHT, LocalDate.of(1998, 5, 29), "Undrafted guard, fan favorite", 15),
+                            SamplePlayerData("D'Angelo", "Russell", 193, 198, PrimaryHand.RIGHT, LocalDate.of(1996, 2, 23), "2019 All-Star", 1),
+                            SamplePlayerData("Rui", "Hachimura", 203, 213, PrimaryHand.RIGHT, LocalDate.of(1998, 2, 8), "First Japanese-born NBA lottery pick", 28),
+                            SamplePlayerData("Jarred", "Vanderbilt", 206, 216, PrimaryHand.RIGHT, LocalDate.of(1999, 4, 3), "Elite rebounder and defender", 2),
+                            SamplePlayerData("Gabe", "Vincent", 191, 198, PrimaryHand.RIGHT, LocalDate.of(1996, 6, 14), "2023 NBA Finals starter with Miami", 7),
+                            SamplePlayerData("Taurean", "Prince", 201, 211, PrimaryHand.RIGHT, LocalDate.of(1994, 3, 22), "Versatile veteran forward", 12),
+                            SamplePlayerData("Jaxson", "Hayes", 211, 224, PrimaryHand.RIGHT, LocalDate.of(2000, 5, 23), "Athletic rim-running center", 11),
+                            SamplePlayerData("Christian", "Wood", 208, 221, PrimaryHand.RIGHT, LocalDate.of(1995, 9, 27), "Skilled stretch big man", 35),
+                            SamplePlayerData("Cam", "Reddish", 203, 213, PrimaryHand.RIGHT, LocalDate.of(1999, 9, 1), "Former top-10 pick, athletic wing", 5),
+                            SamplePlayerData("Max", "Christie", 196, 203, PrimaryHand.RIGHT, LocalDate.of(2003, 2, 10), "Young developing guard", 10),
+                            SamplePlayerData("Spencer", "Dinwiddie", 196, 201, PrimaryHand.RIGHT, LocalDate.of(1993, 4, 6), "Veteran playmaker", 26),
+                            SamplePlayerData("Jalen", "Hood-Schifino", 188, 196, PrimaryHand.RIGHT, LocalDate.of(2003, 6, 19), "2023 first-round pick from Indiana", 0),
+                            SamplePlayerData("Maxwell", "Lewis", 196, 213, PrimaryHand.RIGHT, LocalDate.of(2003, 4, 12), "2023 second-round pick, lengthy wing", 21)
                         ),
-                        Player(
-                            firstName = "Stephen",
-                            lastName = "Curry",
-                            heightCm = 188,
-                            wingspanCm = 193,
-                            primaryHand = PrimaryHand.RIGHT,
-                            dateOfBirth = LocalDate.of(1988, 3, 14),
-                            notes = "2x MVP, 3-point record holder"
+                        "Boston Celtics" to listOf(
+                            SamplePlayerData("Jayson", "Tatum", 203, 208, PrimaryHand.RIGHT, LocalDate.of(1998, 3, 3), "3x All-NBA, franchise cornerstone", 0),
+                            SamplePlayerData("Jaylen", "Brown", 198, 211, PrimaryHand.RIGHT, LocalDate.of(1996, 10, 24), "2024 Finals MVP", 7),
+                            SamplePlayerData("Jrue", "Holiday", 191, 198, PrimaryHand.RIGHT, LocalDate.of(1990, 6, 12), "2021 NBA Champion, elite defender", 4),
+                            SamplePlayerData("Derrick", "White", 193, 198, PrimaryHand.RIGHT, LocalDate.of(1994, 7, 2), "Two-way guard, 2023 All-Defense", 9),
+                            SamplePlayerData("Kristaps", "Porzingis", 221, 231, PrimaryHand.RIGHT, LocalDate.of(1995, 8, 2), "Unicorn, elite rim protector and shooter", 8),
+                            SamplePlayerData("Al", "Horford", 206, 218, PrimaryHand.RIGHT, LocalDate.of(1986, 6, 3), "5x All-Star, veteran leader", 42),
+                            SamplePlayerData("Payton", "Pritchard", 185, 191, PrimaryHand.RIGHT, LocalDate.of(1998, 1, 28), "Sharpshooter off the bench", 11),
+                            SamplePlayerData("Sam", "Hauser", 201, 208, PrimaryHand.RIGHT, LocalDate.of(1997, 12, 8), "Elite 3-point specialist", 30),
+                            SamplePlayerData("Luke", "Kornet", 218, 224, PrimaryHand.RIGHT, LocalDate.of(1995, 7, 15), "Shot-blocking backup center", 40),
+                            SamplePlayerData("Oshae", "Brissett", 198, 213, PrimaryHand.RIGHT, LocalDate.of(1998, 6, 20), "Versatile forward, strong defender", 12),
+                            SamplePlayerData("Dalano", "Banton", 201, 208, PrimaryHand.LEFT, LocalDate.of(1999, 9, 11), "Long playmaking guard", 45),
+                            SamplePlayerData("Lamar", "Stevens", 201, 211, PrimaryHand.RIGHT, LocalDate.of(1997, 9, 9), "Energetic two-way forward", 17),
+                            SamplePlayerData("Svi", "Mykhailiuk", 201, 193, PrimaryHand.RIGHT, LocalDate.of(1997, 6, 10), "Ukrainian sharpshooter", 14),
+                            SamplePlayerData("Jaden", "Springer", 193, 201, PrimaryHand.RIGHT, LocalDate.of(2002, 9, 25), "Defensive-minded young guard", 25),
+                            SamplePlayerData("Neemias", "Queta", 213, 224, PrimaryHand.RIGHT, LocalDate.of(1999, 7, 13), "Portuguese center, rim protector", 88)
                         ),
-                        Player(
-                            firstName = "Giannis",
-                            lastName = "Antetokounmpo",
-                            heightCm = 211,
-                            wingspanCm = 221,
-                            primaryHand = PrimaryHand.RIGHT,
-                            dateOfBirth = LocalDate.of(1994, 12, 6),
-                            notes = "Greek Freak, 2x MVP"
+                        "Golden State Warriors" to listOf(
+                            SamplePlayerData("Stephen", "Curry", 188, 193, PrimaryHand.RIGHT, LocalDate.of(1988, 3, 14), "Greatest shooter ever, 4x Champion, 2x MVP", 30),
+                            SamplePlayerData("Klay", "Thompson", 198, 203, PrimaryHand.RIGHT, LocalDate.of(1990, 2, 8), "Splash Brother, 4x Champion", 11),
+                            SamplePlayerData("Andrew", "Wiggins", 201, 213, PrimaryHand.RIGHT, LocalDate.of(1995, 2, 23), "2022 All-Star, 2022 Champion", 22),
+                            SamplePlayerData("Draymond", "Green", 198, 213, PrimaryHand.RIGHT, LocalDate.of(1990, 3, 4), "4x Champion, DPOY, elite playmaker", 23),
+                            SamplePlayerData("Kevon", "Looney", 206, 218, PrimaryHand.RIGHT, LocalDate.of(1996, 2, 6), "Ironman, 4x Champion, elite rebounder", 5),
+                            SamplePlayerData("Jonathan", "Kuminga", 201, 211, PrimaryHand.RIGHT, LocalDate.of(2002, 10, 6), "Athletic young forward with star potential", 0),
+                            SamplePlayerData("Moses", "Moody", 196, 208, PrimaryHand.RIGHT, LocalDate.of(2002, 5, 31), "3-and-D wing, 2022 Champion", 4),
+                            SamplePlayerData("Brandin", "Podziemski", 196, 198, PrimaryHand.LEFT, LocalDate.of(2003, 2, 25), "2024 All-Rookie selection", 2),
+                            SamplePlayerData("Chris", "Paul", 183, 188, PrimaryHand.RIGHT, LocalDate.of(1985, 5, 6), "Point God, 12x All-Star", 3),
+                            SamplePlayerData("Gary", "Payton II", 191, 201, PrimaryHand.RIGHT, LocalDate.of(1992, 12, 1), "Elite perimeter defender, 2022 Champion", 8),
+                            SamplePlayerData("Cory", "Joseph", 191, 196, PrimaryHand.RIGHT, LocalDate.of(1991, 8, 20), "Veteran backup point guard", 7),
+                            SamplePlayerData("Dario", "Saric", 208, 213, PrimaryHand.RIGHT, LocalDate.of(1994, 4, 8), "Skilled Croatian big man", 20),
+                            SamplePlayerData("Trayce", "Jackson-Davis", 206, 218, PrimaryHand.RIGHT, LocalDate.of(2000, 2, 22), "Energetic young big man", 32),
+                            SamplePlayerData("Gui", "Santos", 198, 206, PrimaryHand.RIGHT, LocalDate.of(2002, 7, 1), "Brazilian wing prospect", 15),
+                            SamplePlayerData("Lester", "Quinones", 193, 201, PrimaryHand.RIGHT, LocalDate.of(2000, 7, 14), "Two-way guard", 25)
+                        ),
+                        "Milwaukee Bucks" to listOf(
+                            SamplePlayerData("Giannis", "Antetokounmpo", 211, 221, PrimaryHand.RIGHT, LocalDate.of(1994, 12, 6), "Greek Freak, 2x MVP, 2021 Champion", 34),
+                            SamplePlayerData("Damian", "Lillard", 188, 196, PrimaryHand.RIGHT, LocalDate.of(1990, 7, 15), "7x All-Star, Dame Time", 0),
+                            SamplePlayerData("Khris", "Middleton", 201, 208, PrimaryHand.RIGHT, LocalDate.of(1991, 8, 12), "3x All-Star, 2021 Champion", 22),
+                            SamplePlayerData("Brook", "Lopez", 213, 218, PrimaryHand.RIGHT, LocalDate.of(1988, 4, 1), "All-Star center, elite shot blocker", 11),
+                            SamplePlayerData("Bobby", "Portis", 208, 216, PrimaryHand.RIGHT, LocalDate.of(1995, 2, 10), "Fan favorite, 2021 Champion", 9),
+                            SamplePlayerData("Malik", "Beasley", 193, 198, PrimaryHand.RIGHT, LocalDate.of(1996, 11, 26), "Sharpshooting guard", 5),
+                            SamplePlayerData("Pat", "Connaughton", 196, 198, PrimaryHand.RIGHT, LocalDate.of(1993, 1, 6), "Versatile veteran wing", 24),
+                            SamplePlayerData("Cameron", "Payne", 185, 193, PrimaryHand.RIGHT, LocalDate.of(1994, 8, 8), "Speedy backup point guard", 1),
+                            SamplePlayerData("MarJon", "Beauchamp", 198, 208, PrimaryHand.RIGHT, LocalDate.of(2001, 4, 15), "Athletic young wing", 3),
+                            SamplePlayerData("Andre", "Jackson Jr", 198, 211, PrimaryHand.RIGHT, LocalDate.of(2001, 9, 11), "Versatile defensive wing", 44),
+                            SamplePlayerData("Thanasis", "Antetokounmpo", 198, 213, PrimaryHand.RIGHT, LocalDate.of(1992, 7, 17), "Energy big brother of Giannis", 43),
+                            SamplePlayerData("Jae", "Crowder", 198, 206, PrimaryHand.RIGHT, LocalDate.of(1990, 7, 6), "Tough veteran 3-and-D forward", 99),
+                            SamplePlayerData("Robin", "Lopez", 213, 218, PrimaryHand.RIGHT, LocalDate.of(1988, 4, 1), "Twin brother of Brook, veteran center", 33),
+                            SamplePlayerData("AJ", "Green", 193, 196, PrimaryHand.RIGHT, LocalDate.of(2000, 1, 10), "Sharpshooter from Northern Iowa", 20),
+                            SamplePlayerData("Lindell", "Wigginton", 183, 191, PrimaryHand.RIGHT, LocalDate.of(1999, 1, 22), "Quick scoring guard", 6)
+                        ),
+                        "Denver Nuggets" to listOf(
+                            SamplePlayerData("Nikola", "Jokic", 211, 216, PrimaryHand.RIGHT, LocalDate.of(1995, 2, 19), "3x MVP, 2023 Champion and Finals MVP", 15),
+                            SamplePlayerData("Jamal", "Murray", 193, 198, PrimaryHand.RIGHT, LocalDate.of(1997, 2, 23), "Playoff performer, 2023 Champion", 27),
+                            SamplePlayerData("Michael", "Porter Jr", 208, 218, PrimaryHand.RIGHT, LocalDate.of(1998, 6, 29), "Elite scorer, 2023 Champion", 1),
+                            SamplePlayerData("Aaron", "Gordon", 203, 211, PrimaryHand.RIGHT, LocalDate.of(1995, 9, 16), "Athletic forward, 2023 Champion", 50),
+                            SamplePlayerData("Kentavious", "Caldwell-Pope", 196, 203, PrimaryHand.RIGHT, LocalDate.of(1993, 2, 18), "3-and-D guard, 2x Champion", 5),
+                            SamplePlayerData("Reggie", "Jackson", 191, 201, PrimaryHand.RIGHT, LocalDate.of(1990, 4, 16), "Veteran scoring guard", 7),
+                            SamplePlayerData("Christian", "Braun", 198, 201, PrimaryHand.RIGHT, LocalDate.of(2001, 4, 17), "2023 Champion, tough competitor", 0),
+                            SamplePlayerData("Peyton", "Watson", 203, 211, PrimaryHand.RIGHT, LocalDate.of(2003, 4, 18), "Athletic young wing with upside", 8),
+                            SamplePlayerData("Zeke", "Nnaji", 211, 218, PrimaryHand.RIGHT, LocalDate.of(2001, 1, 9), "Young stretch big", 22),
+                            SamplePlayerData("DeAndre", "Jordan", 211, 224, PrimaryHand.RIGHT, LocalDate.of(1988, 7, 21), "Veteran center, former All-Star", 6),
+                            SamplePlayerData("Vlatko", "Cancar", 203, 208, PrimaryHand.RIGHT, LocalDate.of(1997, 4, 10), "Slovenian versatile forward", 31),
+                            SamplePlayerData("Julian", "Strawther", 196, 203, PrimaryHand.RIGHT, LocalDate.of(2002, 3, 30), "Sharpshooter from Gonzaga", 4),
+                            SamplePlayerData("Jalen", "Pickett", 196, 198, PrimaryHand.RIGHT, LocalDate.of(1999, 5, 30), "Crafty undrafted point guard", 14),
+                            SamplePlayerData("Hunter", "Tyson", 203, 208, PrimaryHand.RIGHT, LocalDate.of(2000, 4, 17), "Stretch forward from Clemson", 9),
+                            SamplePlayerData("Collin", "Gillespie", 188, 193, PrimaryHand.RIGHT, LocalDate.of(1999, 5, 9), "Tough guard from Villanova", 32)
                         )
                     )
-                    samplePlayers.forEach { player ->
-                        repository.insertPlayer(player)
+
+                    playersByTeam.forEach { (teamName, players) ->
+                        val teamId = teamMap[teamName]
+                        players.forEach { data ->
+                            val playerId = repository.insertPlayer(
+                                Player(
+                                    firstName = data.firstName,
+                                    lastName = data.lastName,
+                                    heightCm = data.heightCm,
+                                    wingspanCm = data.wingspanCm,
+                                    primaryHand = data.hand,
+                                    dateOfBirth = data.dob,
+                                    notes = data.notes
+                                )
+                            )
+                            teamId?.let {
+                                repository.addPlayerToTeam(playerId, it, data.jersey)
+                            }
+                        }
                     }
+
                     showMessage("Sample players added!")
                 }
             } catch (e: Exception) {
