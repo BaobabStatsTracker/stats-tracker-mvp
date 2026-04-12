@@ -22,22 +22,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.zIndex
+import kotlin.math.roundToInt
 import com.example.statstracker.database.entity.Player
 import com.example.statstracker.database.repository.BasketballRepository
 import com.example.statstracker.model.GameEventType
 import com.example.statstracker.model.GameTeamSide
 import com.example.statstracker.model.TrackingMode
+import com.example.statstracker.ui.components.DragDropState
 import com.example.statstracker.ui.components.DraggablePlayerIcon
 import com.example.statstracker.ui.components.PlayerIcon
-import com.example.statstracker.ui.components.PlayerIconPosition
 import com.example.statstracker.ui.viewmodel.GameDashboardUiState
 import com.example.statstracker.ui.viewmodel.GameDashboardViewModel
 
@@ -375,122 +379,97 @@ private fun PlayerTrackingHalf(
     onPlayerClick: (Long) -> Unit,
     onSwap: (Long, Long) -> Unit
 ) {
-    // Track positions of all player icons for drag-drop
-    val positions = remember { mutableStateListOf<PlayerIconPosition>() }
+    // Shared drag state — all court + bench icons register their window-coordinate
+    // centers here so cross-container (court ↔ bench) drag-and-drop works correctly.
+    val dragDropState = remember { DragDropState() }
 
-    Column(
+    // Window-coordinate origin of this Box, used to convert the ghost's
+    // window-space position into a local offset for rendering.
+    var containerWindowOffset by remember { mutableStateOf(Offset.Zero) }
+
+    Box(
         modifier = modifier
             .fillMaxHeight()
-            .padding(8.dp)
+            .onGloballyPositioned { coords ->
+                containerWindowOffset = Offset(
+                    coords.positionInWindow().x,
+                    coords.positionInWindow().y
+                )
+            }
     ) {
-        // On-court players (5) — arranged in 2-1-2 formation
-        Box(
+        // --- Main layout: court formation + bench row ---
+        Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(8.dp)
         ) {
-            val courtPlayers = onCourt.mapNotNull { id -> players.find { it.id == id } }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier.fillMaxHeight(0.9f)
+            // On-court players (5) — arranged in 2-1-2 formation
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                // Row 1: 2 players
-                Row(
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    modifier = Modifier.fillMaxWidth()
+                val courtPlayers = onCourt.mapNotNull { id -> players.find { it.id == id } }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceEvenly,
+                    modifier = Modifier.fillMaxHeight(0.9f)
                 ) {
-                    courtPlayers.take(2).forEach { player ->
-                        Box(
-                            modifier = Modifier.onGloballyPositioned { coords ->
-                                val pos = coords.positionInParent()
-                                val center = Offset(
-                                    pos.x + coords.size.width / 2f,
-                                    pos.y + coords.size.height / 2f
-                                )
-                                val existing = positions.indexOfFirst { it.playerId == player.id }
-                                val entry = PlayerIconPosition(player.id, center)
-                                if (existing >= 0) positions[existing] = entry
-                                else positions.add(entry)
-                            }
-                        ) {
-                            DraggablePlayerIcon(
-                                playerId = player.id,
-                                jerseyNumber = jerseys[player.id] ?: 0,
-                                playerName = player.firstName,
-                                isOnCourt = true,
-                                accentColor = accentColor,
-                                allPositions = positions.toList(),
-                                onSwap = onSwap,
-                                onClick = { onPlayerClick(player.id) }
-                            )
-                        }
-                    }
-                }
-
-                // Row 2: 1 player (center)
-                if (courtPlayers.size > 2) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val player = courtPlayers[2]
-                        Box(
-                            modifier = Modifier.onGloballyPositioned { coords ->
-                                val pos = coords.positionInParent()
-                                val center = Offset(
-                                    pos.x + coords.size.width / 2f,
-                                    pos.y + coords.size.height / 2f
-                                )
-                                val existing = positions.indexOfFirst { it.playerId == player.id }
-                                val entry = PlayerIconPosition(player.id, center)
-                                if (existing >= 0) positions[existing] = entry
-                                else positions.add(entry)
-                            }
-                        ) {
-                            DraggablePlayerIcon(
-                                playerId = player.id,
-                                jerseyNumber = jerseys[player.id] ?: 0,
-                                playerName = player.firstName,
-                                isOnCourt = true,
-                                accentColor = accentColor,
-                                allPositions = positions.toList(),
-                                onSwap = onSwap,
-                                onClick = { onPlayerClick(player.id) }
-                            )
-                        }
-                    }
-                }
-
-                // Row 3: 2 players
-                if (courtPlayers.size > 3) {
+                    // Row 1: 2 players
                     Row(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        courtPlayers.drop(3).take(2).forEach { player ->
-                            Box(
-                                modifier = Modifier.onGloballyPositioned { coords ->
-                                    val pos = coords.positionInParent()
-                                    val center = Offset(
-                                        pos.x + coords.size.width / 2f,
-                                        pos.y + coords.size.height / 2f
-                                    )
-                                    val existing = positions.indexOfFirst { it.playerId == player.id }
-                                    val entry = PlayerIconPosition(player.id, center)
-                                    if (existing >= 0) positions[existing] = entry
-                                    else positions.add(entry)
-                                }
-                            ) {
+                        courtPlayers.take(2).forEach { player ->
+                            DraggablePlayerIcon(
+                                playerId = player.id,
+                                jerseyNumber = jerseys[player.id] ?: 0,
+                                playerName = player.firstName,
+                                isOnCourt = true,
+                                accentColor = accentColor,
+                                dragDropState = dragDropState,
+                                onSwap = onSwap,
+                                onClick = { onPlayerClick(player.id) }
+                            )
+                        }
+                    }
+
+                    // Row 2: 1 player (center)
+                    if (courtPlayers.size > 2) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val player = courtPlayers[2]
+                            DraggablePlayerIcon(
+                                playerId = player.id,
+                                jerseyNumber = jerseys[player.id] ?: 0,
+                                playerName = player.firstName,
+                                isOnCourt = true,
+                                accentColor = accentColor,
+                                dragDropState = dragDropState,
+                                onSwap = onSwap,
+                                onClick = { onPlayerClick(player.id) }
+                            )
+                        }
+                    }
+
+                    // Row 3: 2 players
+                    if (courtPlayers.size > 3) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            courtPlayers.drop(3).take(2).forEach { player ->
                                 DraggablePlayerIcon(
                                     playerId = player.id,
                                     jerseyNumber = jerseys[player.id] ?: 0,
                                     playerName = player.firstName,
                                     isOnCourt = true,
                                     accentColor = accentColor,
-                                    allPositions = positions.toList(),
+                                    dragDropState = dragDropState,
                                     onSwap = onSwap,
                                     onClick = { onPlayerClick(player.id) }
                                 )
@@ -499,45 +478,66 @@ private fun PlayerTrackingHalf(
                     }
                 }
             }
-        }
 
-        // Bench row
-        if (bench.isNotEmpty()) {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                bench.forEach { pid ->
-                    val player = players.find { it.id == pid } ?: return@forEach
-                    Box(
-                        modifier = Modifier.onGloballyPositioned { coords ->
-                            val pos = coords.positionInParent()
-                            val center = Offset(
-                                pos.x + coords.size.width / 2f,
-                                pos.y + coords.size.height / 2f
-                            )
-                            val existing = positions.indexOfFirst { it.playerId == pid }
-                            val entry = PlayerIconPosition(pid, center)
-                            if (existing >= 0) positions[existing] = entry
-                            else positions.add(entry)
-                        }
-                    ) {
+            // Bench row
+            if (bench.isNotEmpty()) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    bench.forEach { pid ->
+                        val player = players.find { it.id == pid } ?: return@forEach
                         DraggablePlayerIcon(
                             playerId = pid,
                             jerseyNumber = jerseys[pid] ?: 0,
                             playerName = player.firstName,
                             isOnCourt = false,
                             accentColor = accentColor.copy(alpha = 0.6f),
-                            allPositions = positions.toList(),
+                            dragDropState = dragDropState,
                             onSwap = onSwap,
-                            onClick = { onPlayerClick(pid) }
+                            // Bench players: tap is a no-op (only on-court players open the event modal)
+                            onClick = { }
                         )
                     }
                 }
+            }
+        }
+
+        // --- Drag ghost overlay ---
+        // Rendered at the Box level (above both court and bench), so it is
+        // never clipped by the horizontalScroll on the bench row.
+        if (dragDropState.isDragging) {
+            val ghostCenter = dragDropState.dragCenter
+            // Convert from window coords to local coords inside this Box
+            val localX = ghostCenter.x - containerWindowOffset.x
+            val localY = ghostCenter.y - containerWindowOffset.y
+            val ghostSize = if (dragDropState.draggedIsOnCourt) 56.dp else 40.dp
+
+            Box(
+                modifier = Modifier
+                    .zIndex(100f)
+                    .offset {
+                        IntOffset(
+                            // Center the ghost on the finger position
+                            (localX - ghostSize.toPx() / 2f).roundToInt(),
+                            (localY - ghostSize.toPx() / 2f).roundToInt()
+                        )
+                    }
+                    // Make the ghost slightly transparent so the drop target is visible beneath
+                    .graphicsLayer { alpha = 0.85f }
+            ) {
+                PlayerIcon(
+                    jerseyNumber = dragDropState.draggedJersey,
+                    playerName = dragDropState.draggedName,
+                    isOnCourt = dragDropState.draggedIsOnCourt,
+                    size = ghostSize,
+                    accentColor = dragDropState.draggedAccentColor,
+                    onClick = { }
+                )
             }
         }
     }
