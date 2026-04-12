@@ -90,9 +90,52 @@ class GameDetailViewModel(
 
     private fun calculatePlayerStatsFromEvents(events: List<GameEvent>): List<PlayerGameStats> {
         val playerStatsMap = mutableMapOf<Long, MutableMap<String, Int>>()
+
+        // --- Time-played reconstruction from SUBSTITUTION events ---
+        // Each stint is a (entryTime, exitTime?) pair.
+        // playerId = who entered, assistPlayerId = who left (null for initial lineup).
+        val playerStints = mutableMapOf<Long, MutableList<Pair<Int, Int?>>>()
+        val maxTimestamp = events.maxOfOrNull { it.timestamp } ?: 0
+        
+        events.filter { it.eventType == GameEventType.SUBSTITUTION }
+            .sortedBy { it.timestamp }
+            .forEach { event ->
+                val enteredId = event.playerId ?: return@forEach
+                val leftId = event.assistPlayerId
+
+                // Player entering the court: start a new open stint
+                val entryStints = playerStints.getOrPut(enteredId) { mutableListOf() }
+                entryStints.add(Pair(event.timestamp, null))
+
+                // Player leaving the court: close their most recent open stint
+                if (leftId != null) {
+                    val exitStints = playerStints.getOrPut(leftId) { mutableListOf() }
+                    val openIdx = exitStints.indexOfLast { it.second == null }
+                    if (openIdx >= 0) {
+                        exitStints[openIdx] = exitStints[openIdx].copy(second = event.timestamp)
+                    }
+                }
+            }
+
+        // Close any still-open stints using the latest event timestamp as the end
+        for ((_, stints) in playerStints) {
+            for (i in stints.indices) {
+                if (stints[i].second == null) {
+                    stints[i] = stints[i].copy(second = maxTimestamp)
+                }
+            }
+        }
+
+        // Compute total seconds per player from stints
+        val playerTimeSeconds = playerStints.mapValues { (_, stints) ->
+            stints.sumOf { (entry, exit) -> (exit ?: entry) - entry }
+        }
         
         events.forEach { event ->
             val playerId = event.playerId ?: return@forEach
+            // Skip SUBSTITUTION events for counting stats
+            if (event.eventType == GameEventType.SUBSTITUTION) return@forEach
+
             val stats = playerStatsMap.getOrPut(playerId) { 
                 mutableMapOf(
                     "points" to 0,
@@ -167,9 +210,14 @@ class GameDetailViewModel(
         }
         
         // Convert to PlayerGameStats objects
-        return playerStatsMap.map { (playerId, stats) ->
-            // Find the team for this player from the events
-            val teamId = events.find { it.playerId == playerId }?.let { event ->
+        // Merge stat-event players and substitution-only players (who may have
+        // court time but no other stat events)
+        val allPlayerIds = (playerStatsMap.keys + playerTimeSeconds.keys).toSet()
+
+        return allPlayerIds.map { playerId ->
+            val stats = playerStatsMap[playerId]
+            // Find the team for this player from any event that references them
+            val teamId = events.find { it.playerId == playerId || it.assistPlayerId == playerId }?.let { event ->
                 _uiState.value.gameWithDetails?.let { gameDetails ->
                     when (event.team) {
                         GameTeamSide.HOME -> gameDetails.homeTeam.id
@@ -183,20 +231,21 @@ class GameDetailViewModel(
                 playerId = playerId,
                 teamId = teamId,
                 quarter = null, // full game stats
-                points = stats["points"]!!,
-                fieldGoalsMade = stats["fieldGoalsMade"]!!,
-                fieldGoalsAttempted = stats["fieldGoalsAttempted"]!!,
-                threePointersMade = stats["threePointersMade"]!!,
-                threePointersAttempted = stats["threePointersAttempted"]!!,
-                freeThrowsMade = stats["freeThrowsMade"]!!,
-                freeThrowsAttempted = stats["freeThrowsAttempted"]!!,
-                reboundsOffensive = stats["reboundsOffensive"]!!,
-                reboundsDefensive = stats["reboundsDefensive"]!!,
-                assists = stats["assists"]!!,
-                steals = stats["steals"]!!,
-                blocks = stats["blocks"]!!,
-                turnovers = stats["turnovers"]!!,
-                foulsPersonal = stats["foulsPersonal"]!!
+                points = stats?.get("points") ?: 0,
+                fieldGoalsMade = stats?.get("fieldGoalsMade") ?: 0,
+                fieldGoalsAttempted = stats?.get("fieldGoalsAttempted") ?: 0,
+                threePointersMade = stats?.get("threePointersMade") ?: 0,
+                threePointersAttempted = stats?.get("threePointersAttempted") ?: 0,
+                freeThrowsMade = stats?.get("freeThrowsMade") ?: 0,
+                freeThrowsAttempted = stats?.get("freeThrowsAttempted") ?: 0,
+                reboundsOffensive = stats?.get("reboundsOffensive") ?: 0,
+                reboundsDefensive = stats?.get("reboundsDefensive") ?: 0,
+                assists = stats?.get("assists") ?: 0,
+                steals = stats?.get("steals") ?: 0,
+                blocks = stats?.get("blocks") ?: 0,
+                turnovers = stats?.get("turnovers") ?: 0,
+                foulsPersonal = stats?.get("foulsPersonal") ?: 0,
+                timePlayedSeconds = playerTimeSeconds[playerId] ?: 0
             )
         }
     }

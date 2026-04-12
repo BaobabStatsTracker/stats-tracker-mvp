@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.statstracker.database.entity.Game
 import com.example.statstracker.database.entity.GameEvent
 import com.example.statstracker.database.entity.Player
+import com.example.statstracker.database.entity.PlayerGameStats
 import com.example.statstracker.database.entity.Team
 import com.example.statstracker.database.repository.BasketballRepository
 import com.example.statstracker.model.GameEventType
@@ -66,6 +67,10 @@ class GameDashboardViewModel(
 
                 val gameEvents = repository.getEventsForGame(gameId)
 
+                // Build initial court-entry-time map: all starters entered at t=0
+                val entryTimes = mutableMapOf<Long, Int>()
+                (homeOnCourt + awayOnCourt).forEach { entryTimes[it] = 0 }
+
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     game = game,
@@ -80,8 +85,34 @@ class GameDashboardViewModel(
                     homeBench = homeBench,
                     awayOnCourt = awayOnCourt,
                     awayBench = awayBench,
+                    playerCourtEntryTimes = entryTimes,
+                    playerAccumulatedSeconds = emptyMap(),
                     error = null
                 )
+
+                // Log initial-lineup SUBSTITUTION events (playerIn only, no playerOut)
+                // so GameDetailViewModel can reconstruct time from events.
+                // Guard: only if no SUBSTITUTION events already exist for this game.
+                val hasExistingSubs = gameEvents.any { it.eventType == GameEventType.SUBSTITUTION }
+                if (!hasExistingSubs) {
+                    val allStarters = homeOnCourt.map { it to GameTeamSide.HOME } +
+                            awayOnCourt.map { it to GameTeamSide.AWAY }
+                    for ((pid, side) in allStarters) {
+                        repository.insertGameEvent(
+                            GameEvent(
+                                gameId = gameId,
+                                playerId = pid,
+                                team = side,
+                                timestamp = 0,
+                                eventType = GameEventType.SUBSTITUTION,
+                                assistPlayerId = null // no player out — initial lineup
+                            )
+                        )
+                    }
+                    // Refresh events list to include the new sub events
+                    val refreshed = repository.getEventsForGame(gameId)
+                    _uiState.value = _uiState.value.copy(gameEvents = refreshed)
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -158,6 +189,10 @@ class GameDashboardViewModel(
 
     fun endGame() {
         pauseTimer()
+        // Persist final PlayerGameStats (including time played) to DB
+        viewModelScope.launch {
+            persistPlayerGameStats()
+        }
         _uiState.value = _uiState.value.copy(showEndGameDialog = false)
     }
 
@@ -220,7 +255,7 @@ class GameDashboardViewModel(
         }
     }
 
-    // --- Player Swapping ---
+    // --- Player Swapping & Substitution Tracking ---
 
     fun swapPlayers(side: GameTeamSide, playerId1: Long, playerId2: Long) {
         val s = _uiState.value
@@ -232,29 +267,85 @@ class GameDashboardViewModel(
         val idx2Court = onCourt.indexOf(playerId2)
         val idx2Bench = bench.indexOf(playerId2)
 
-        // Both on court — swap positions
+        // Identify playerIn / playerOut for the substitution cases
+        var playerIn: Long? = null
+        var playerOut: Long? = null
+
+        // Both on court — swap positions (not a real substitution)
         if (idx1Court >= 0 && idx2Court >= 0) {
             onCourt[idx1Court] = playerId2
             onCourt[idx2Court] = playerId1
         }
-        // Both on bench — swap positions
+        // Both on bench — swap positions (not a real substitution)
         else if (idx1Bench >= 0 && idx2Bench >= 0) {
             bench[idx1Bench] = playerId2
             bench[idx2Bench] = playerId1
         }
-        // One on court, one on bench — substitute
+        // Court → bench substitution: player1 leaves court, player2 enters
         else if (idx1Court >= 0 && idx2Bench >= 0) {
             onCourt[idx1Court] = playerId2
             bench[idx2Bench] = playerId1
-        } else if (idx1Bench >= 0 && idx2Court >= 0) {
+            playerOut = playerId1
+            playerIn = playerId2
+        }
+        // Bench → court substitution: player1 enters court, player2 leaves
+        else if (idx1Bench >= 0 && idx2Court >= 0) {
             onCourt[idx2Court] = playerId1
             bench[idx1Bench] = playerId2
+            playerOut = playerId2
+            playerIn = playerId1
+        }
+
+        // Update court/bench lists
+        val updatedEntryTimes = s.playerCourtEntryTimes.toMutableMap()
+        val updatedAccumulated = s.playerAccumulatedSeconds.toMutableMap()
+
+        if (playerIn != null && playerOut != null) {
+            // Accumulate the completed stint for the player leaving the court
+            val entryTime = updatedEntryTimes[playerOut] ?: 0
+            val stint = (s.elapsedSeconds - entryTime).toInt().coerceAtLeast(0)
+            updatedAccumulated[playerOut] = (updatedAccumulated[playerOut] ?: 0) + stint
+            updatedEntryTimes.remove(playerOut)
+
+            // Record court entry time for the player entering
+            updatedEntryTimes[playerIn] = s.elapsedSeconds.toInt()
+
+            // Log SUBSTITUTION event to DB asynchronously
+            val timestamp = calculateGameTimestamp()
+            viewModelScope.launch {
+                try {
+                    repository.insertGameEvent(
+                        GameEvent(
+                            gameId = gameId,
+                            playerId = playerIn,
+                            team = side,
+                            timestamp = timestamp,
+                            eventType = GameEventType.SUBSTITUTION,
+                            assistPlayerId = playerOut  // encodes "who left the court"
+                        )
+                    )
+                    val refreshed = repository.getEventsForGame(gameId)
+                    _uiState.value = _uiState.value.copy(gameEvents = refreshed)
+                } catch (e: Exception) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Failed to log substitution: ${e.message}"
+                    )
+                }
+            }
         }
 
         _uiState.value = if (side == GameTeamSide.HOME) {
-            s.copy(homeOnCourt = onCourt, homeBench = bench)
+            s.copy(
+                homeOnCourt = onCourt, homeBench = bench,
+                playerCourtEntryTimes = updatedEntryTimes,
+                playerAccumulatedSeconds = updatedAccumulated
+            )
         } else {
-            s.copy(awayOnCourt = onCourt, awayBench = bench)
+            s.copy(
+                awayOnCourt = onCourt, awayBench = bench,
+                playerCourtEntryTimes = updatedEntryTimes,
+                playerAccumulatedSeconds = updatedAccumulated
+            )
         }
     }
 
@@ -272,6 +363,47 @@ class GameDashboardViewModel(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Failed to delete event: ${e.message}")
             }
+        }
+    }
+
+    // --- Time Played Persistence ---
+
+    /**
+     * Builds and upserts [PlayerGameStats] for every player who spent time on court.
+     * Called on game end to write final `timePlayedSeconds` to the database.
+     *
+     * For players still on court when the game ends, their active stint is
+     * calculated as (current elapsed seconds − entry time) and added to
+     * their accumulated total.
+     */
+    private suspend fun persistPlayerGameStats() {
+        val s = _uiState.value
+        val game = s.game ?: return
+
+        // Merge accumulated seconds with any active (still-on-court) stint
+        val finalSeconds = s.playerAccumulatedSeconds.toMutableMap()
+        for ((playerId, entryTime) in s.playerCourtEntryTimes) {
+            val activeStint = (s.elapsedSeconds - entryTime).toInt().coerceAtLeast(0)
+            finalSeconds[playerId] = (finalSeconds[playerId] ?: 0) + activeStint
+        }
+
+        // Determine which team each player belongs to
+        val homePlayerIds = s.homePlayers.map { it.id }.toSet()
+
+        for ((playerId, seconds) in finalSeconds) {
+            if (seconds <= 0) continue
+            val teamId = if (playerId in homePlayerIds) game.homeTeamId else game.awayTeamId
+
+            // Load existing stats (from event logging) or create a fresh row
+            val existing = repository.getPlayerGameStats(gameId, playerId)
+            val stats = (existing ?: PlayerGameStats(
+                gameId = gameId,
+                playerId = playerId,
+                teamId = teamId,
+                quarter = null
+            )).copy(timePlayedSeconds = seconds)
+
+            repository.upsertPlayerGameStats(stats)
         }
     }
 
@@ -331,7 +463,12 @@ data class GameDashboardUiState(
     // Event modal
     val showEventModal: Boolean = false,
     val selectedPlayerForEvent: Pair<Long, GameTeamSide>? = null,
-    val selectedTeamForEvent: GameTeamSide? = null
+    val selectedTeamForEvent: GameTeamSide? = null,
+    // Per-player time tracking (in-memory during live game)
+    // Maps playerId → elapsed-seconds value when they entered the court
+    val playerCourtEntryTimes: Map<Long, Int> = emptyMap(),
+    // Maps playerId → total accumulated seconds from completed (subbed-out) stints
+    val playerAccumulatedSeconds: Map<Long, Int> = emptyMap()
 ) {
     val homeScore: Int
         get() = gameEvents

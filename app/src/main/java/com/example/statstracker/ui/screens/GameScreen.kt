@@ -401,8 +401,16 @@ private fun PlayerCard(
                     fontWeight = FontWeight.Medium
                 )
                 if (stats != null) {
+                    val summary = buildString {
+                        append("PTS: ${stats.points} | REB: ${stats.reboundsOffensive + stats.reboundsDefensive} | AST: ${stats.assists}")
+                        if (stats.timePlayedSeconds > 0) {
+                            val min = stats.timePlayedSeconds / 60
+                            val sec = stats.timePlayedSeconds % 60
+                            append(" | MIN: $min:${String.format("%02d", sec)}")
+                        }
+                    }
                     Text(
-                        text = "PTS: ${stats.points} | REB: ${stats.reboundsOffensive + stats.reboundsDefensive} | AST: ${stats.assists}",
+                        text = summary,
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
