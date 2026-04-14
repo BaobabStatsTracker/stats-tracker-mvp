@@ -4,7 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
@@ -18,8 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.sp
+import com.example.statstracker.ui.theme.LocalAppColors
 import androidx.compose.ui.window.Dialog
 import com.example.statstracker.database.entity.GameEvent
 import com.example.statstracker.database.entity.GameStats
@@ -45,29 +43,26 @@ fun GameScreen(
     var selectedPlayer by remember { mutableStateOf<Pair<Player, PlayerGameStats?>?>(null) }
 
     Scaffold(
-        contentWindowInsets = WindowInsets(0),
         topBar = {
-            Surface(shadowElevation = 4.dp) {
-                TopAppBar(
-                    title = { 
-                        Text(
-                            "Game Details",
-                            fontWeight = FontWeight.Medium
-                        ) 
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.White,
-                        titleContentColor = Color.Black,
-                        actionIconContentColor = Color.Black,
-                        navigationIconContentColor = Color.Black
-                    )
+            TopAppBar(
+                title = { 
+                    Text(
+                        "Game Details",
+                        fontWeight = FontWeight.Medium
+                    ) 
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
-            }
+            )
         }
     ) { paddingValues ->
         Box(
@@ -92,7 +87,7 @@ fun GameScreen(
                         Text(
                             text = "Error: ${uiState.error}",
                             color = MaterialTheme.colorScheme.error,
-                            fontSize = 16.sp
+                            style = MaterialTheme.typography.bodyLarge
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = { viewModel.refresh() }) {
@@ -105,7 +100,7 @@ fun GameScreen(
                     Text(
                         text = "Game not found",
                         modifier = Modifier.align(Alignment.Center),
-                        fontSize = 16.sp,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                     )
                 }
@@ -191,8 +186,9 @@ private fun GameInfoCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -205,21 +201,21 @@ private fun GameInfoCard(
             ) {
                 Text(
                     text = gameWithDetails.homeTeam.name,
-                    fontSize = 20.sp,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
                 
                 Text(
                     text = "vs",
-                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
                 
                 Text(
                     text = gameWithDetails.awayTeam.name,
-                    fontSize = 20.sp,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
@@ -230,14 +226,14 @@ private fun GameInfoCard(
             // Game details
             Text(
                 text = "Date: ${gameWithDetails.game.date.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy"))}",
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
             
             gameWithDetails.game.place?.let { place ->
                 Text(
                     text = "Location: $place",
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
@@ -247,7 +243,7 @@ private fun GameInfoCard(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Notes: $notes",
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
@@ -256,7 +252,7 @@ private fun GameInfoCard(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Total Events: ${gameWithDetails.events.size}",
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -288,7 +284,7 @@ private fun TeamTab(
         item {
             Text(
                 text = "Players",
-                fontSize = 18.sp,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(vertical = 8.dp)
@@ -300,7 +296,7 @@ private fun TeamTab(
             item {
                 Text(
                     text = "No players found for this team",
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier.padding(16.dp)
                 )
@@ -325,15 +321,16 @@ private fun TeamStatsCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
                 text = "$teamName Team Stats",
-                fontSize = 16.sp,
+                style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -344,42 +341,42 @@ private fun TeamStatsCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Points", fontSize = 14.sp)
+                Text("Points", style = MaterialTheme.typography.bodyMedium)
                 Text("${stats.points}", fontWeight = FontWeight.Medium)
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Field Goals", fontSize = 14.sp)
+                Text("Field Goals", style = MaterialTheme.typography.bodyMedium)
                 Text("${stats.fieldGoalsMade}/${stats.fieldGoalsAttempted}", fontWeight = FontWeight.Medium)
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("3-Pointers", fontSize = 14.sp)
+                Text("3-Pointers", style = MaterialTheme.typography.bodyMedium)
                 Text("${stats.threePointersMade}/${stats.threePointersAttempted}", fontWeight = FontWeight.Medium)
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Free Throws", fontSize = 14.sp)
+                Text("Free Throws", style = MaterialTheme.typography.bodyMedium)
                 Text("${stats.freeThrowsMade}/${stats.freeThrowsAttempted}", fontWeight = FontWeight.Medium)
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Rebounds", fontSize = 14.sp)
+                Text("Rebounds", style = MaterialTheme.typography.bodyMedium)
                 Text("${stats.totalRebounds}", fontWeight = FontWeight.Medium)
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Assists", fontSize = 14.sp)
+                Text("Assists", style = MaterialTheme.typography.bodyMedium)
                 Text("${stats.assists}", fontWeight = FontWeight.Medium)
             }
         }
@@ -396,8 +393,9 @@ private fun PlayerCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = MaterialTheme.shapes.small,
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)
     ) {
         Row(
             modifier = Modifier
@@ -411,7 +409,7 @@ private fun PlayerCard(
             ) {
                 Text(
                     text = "${player.firstName} ${player.lastName}",
-                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
                 if (stats != null) {
@@ -425,13 +423,13 @@ private fun PlayerCard(
                     }
                     Text(
                         text = summary,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 } else {
                     Text(
                         text = "Click to view details",
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                     )
                 }
@@ -466,7 +464,7 @@ private fun GameEventsTab(
             item {
                 Text(
                     text = "No events recorded for this game",
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier.padding(16.dp)
                 )
@@ -497,10 +495,12 @@ private fun PlayerStatsDialog(
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.medium,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)
@@ -513,7 +513,7 @@ private fun PlayerStatsDialog(
                 ) {
                     Text(
                         text = "${player.firstName} ${player.lastName}",
-                        fontSize = 20.sp,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -538,7 +538,7 @@ private fun PlayerStatsDialog(
                         if (stats.id == 0L) {
                             Text(
                                 text = "Stats calculated from game events",
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
@@ -563,7 +563,7 @@ private fun PlayerStatsDialog(
                 } else {
                     Text(
                         text = "No statistics available for this player in this game. Make sure to log events for this player in the Game Dashboard.",
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
@@ -580,12 +580,12 @@ private fun StatRow(label: String, value: String) {
     ) {
         Text(
             text = label,
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
         )
         Text(
             text = value,
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium
         )
     }
@@ -636,13 +636,14 @@ private fun GameEventItem(
         GameEventType.FREE_THROW_MISSED
     )
     val eventIcon = when (event.eventType) {
-        in madeEvents -> Icons.Default.CheckCircle to Color(0xFF2E7D32)
-        in missedEvents -> Icons.Default.Cancel to Color(0xFFC62828)
+        in madeEvents -> Icons.Default.CheckCircle to LocalAppColors.current.madeShot
+        in missedEvents -> Icons.Default.Cancel to LocalAppColors.current.missedShot
         else -> null
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isHome)
                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
@@ -675,13 +676,13 @@ private fun GameEventItem(
                 // Event label
                 Text(
                     text = eventLabel(event.eventType),
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
                 // Team name
                 Text(
                     text = teamName,
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
                 // Player name (BY_PLAYER only)
@@ -696,7 +697,7 @@ private fun GameEventItem(
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = "${player.firstName} ${player.lastName}",
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
@@ -706,7 +707,7 @@ private fun GameEventItem(
             // Timestamp
             Text(
                 text = "${event.timestamp / 60}:${String.format("%02d", event.timestamp % 60)}",
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
         }

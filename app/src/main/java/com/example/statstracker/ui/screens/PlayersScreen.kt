@@ -3,14 +3,12 @@ package com.example.statstracker.ui.screens
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -22,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -321,30 +318,27 @@ fun PlayersScreen(
     }
     
     Scaffold(
-        contentWindowInsets = WindowInsets(0),
         topBar = {
-            Surface(shadowElevation = 4.dp) {
-                TopAppBar(
-                    title = { 
-                        Text(
-                            text = "Players",
-                            fontWeight = FontWeight.Bold
-                        ) 
-                    },
-                    navigationIcon = {
-                        onNavigateBack?.let {
-                            IconButton(onClick = it) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                            }
+            TopAppBar(
+                title = { 
+                    Text(
+                        text = "Players",
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
+                navigationIcon = {
+                    onNavigateBack?.let {
+                        IconButton(onClick = it) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.White,
-                        titleContentColor = Color.Black,
-                        navigationIconContentColor = Color.Black
-                    )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
-            }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -474,7 +468,7 @@ private fun PlayersList(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 88.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(
@@ -536,17 +530,13 @@ private fun PlayerCard(
                 scaleX = cardScale
                 scaleY = cardScale
             },
-        shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-        ),
+        shape = MaterialTheme.shapes.large,
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp,
-            pressedElevation = 5.dp
+            pressedElevation = 0.dp
         ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
         ),
         interactionSource = cardInteractionSource,
         onClick = onClick
@@ -615,7 +605,7 @@ private fun PlayerCard(
                         if (notes.isNotBlank()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Surface(
-                                shape = RoundedCornerShape(14.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
                             ) {
                                 Text(
@@ -682,7 +672,7 @@ private fun AttributeChip(
     value: String
 ) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f),
         modifier = Modifier.padding(0.dp)
     ) {
@@ -698,7 +688,7 @@ private fun AttributeChip(
 @Composable
 private fun PrimaryHandBadge(hand: PrimaryHand) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         color = if (hand == PrimaryHand.RIGHT) 
             MaterialTheme.colorScheme.secondaryContainer 
         else 

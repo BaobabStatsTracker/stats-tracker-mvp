@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -19,6 +18,7 @@ import com.example.statstracker.database.entity.GameEvent
 import com.example.statstracker.database.entity.Player
 import com.example.statstracker.model.GameEventType
 import com.example.statstracker.model.GameTeamSide
+import com.example.statstracker.ui.theme.LocalAppColors
 
 @Composable
 fun GameLogSection(
@@ -109,12 +109,9 @@ private fun GameEventCard(
     
     Card(
         modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (event.team == GameTeamSide.HOME) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-            } else {
-                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-            }
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
         )
     ) {
         Row(
@@ -124,75 +121,76 @@ private fun GameEventCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = formatTime(event.timestamp.toLong()),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = teamName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (player != null) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = "${player.firstName} ${player.lastName}",
-                            style = MaterialTheme.typography.bodySmall
+                            text = formatTime(event.timestamp.toLong()),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = teamName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
-                    
-                    Text(
-                        text = formatEventType(event.eventType),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    
-                    event.pointsValue?.let { points ->
-                        if (points > 0) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "+$points",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Green,
-                                fontWeight = FontWeight.Bold
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (player != null) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${player.firstName} ${player.lastName}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+
+                        Text(
+                            text = formatEventType(event.eventType),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                        event.pointsValue?.let { points ->
+                            if (points > 0) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "+$points",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = LocalAppColors.current.positivePoints,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
-            }
-            
-            IconButton(
-                onClick = { onDeleteEvent(event.id) }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete event",
-                    tint = MaterialTheme.colorScheme.error
-                )
+
+                IconButton(
+                    onClick = { onDeleteEvent(event.id) }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete event",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         }
     }
-}
+
 
 private fun formatEventType(eventType: GameEventType): String {
     return when (eventType) {

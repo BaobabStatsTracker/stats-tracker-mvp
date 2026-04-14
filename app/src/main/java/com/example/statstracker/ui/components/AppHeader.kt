@@ -6,11 +6,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -19,13 +17,12 @@ fun AppHeader(
     onMenuClick: () -> Unit
 ) {
     if (isTablet) {
-        Surface(shadowElevation = 4.dp) {
         TopAppBar(
             title = {
                 Text(
                     text = "EasyBuckets",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
                 )
             },
             actions = {
@@ -43,19 +40,18 @@ fun AppHeader(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.White,
-                titleContentColor = Color.Black,
-                actionIconContentColor = Color.Black
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                actionIconContentColor = MaterialTheme.colorScheme.onSurface
             )
         )
-        }
     } else {
         CenterAlignedTopAppBar(
             title = {
                 Text(
                     text = "EasyBuckets",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
                 )
             },
             actions = {
@@ -65,7 +61,12 @@ fun AppHeader(
                         contentDescription = "Menu"
                     )
                 }
-            }
+            },
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                actionIconContentColor = MaterialTheme.colorScheme.onSurface
+            )
         )
     }
 }
@@ -90,7 +91,7 @@ fun AppSidebar(
 ) {
     PermanentDrawerSheet(
         modifier = Modifier.width(240.dp),
-        drawerContainerColor = Color.White
+        drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest
     ) {
         Spacer(modifier = Modifier.height(16.dp))
         drawerMenuItems.forEach { item ->
@@ -112,16 +113,17 @@ fun AppDrawerContent(
     currentRoute: String,
     onItemClick: (String) -> Unit
 ) {
-    ModalDrawerSheet {
+    ModalDrawerSheet(
+        drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+    ) {
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "EasyBuckets",
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            fontSize = 24.sp,
             modifier = Modifier.padding(horizontal = 28.dp, vertical = 16.dp)
         )
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 28.dp))
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         drawerMenuItems.forEach { item ->
             NavigationDrawerItem(
                 icon = {

@@ -8,7 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,9 +33,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
+import com.example.statstracker.ui.theme.LocalAppColors
 import kotlin.math.roundToInt
 import com.example.statstracker.database.entity.GameEvent
 import com.example.statstracker.database.entity.Player
@@ -240,8 +240,7 @@ private fun ScoreboardBar(
     formatTime: (Long) -> String
 ) {
     Surface(
-        color = Color.White,
-        shadowElevation = 4.dp
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
         Row(
             modifier = Modifier
@@ -251,7 +250,7 @@ private fun ScoreboardBar(
         ) {
             // Back button
             IconButton(onClick = onNavigateBack, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(20.dp), tint = Color.Black)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
             }
 
             // Home team + score
@@ -265,7 +264,7 @@ private fun ScoreboardBar(
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "${uiState.homeScore}",
@@ -284,13 +283,13 @@ private fun ScoreboardBar(
                     text = if (uiState.isInOvertime) "OT${uiState.overtimeNumber}" else "Q${uiState.currentQuarter}",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = formatTime(uiState.quarterTimeRemaining),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (uiState.isTimerRunning) Color(0xFF4CAF50) else Color.Black
+                    color = if (uiState.isTimerRunning) LocalAppColors.current.timerRunning else MaterialTheme.colorScheme.onSurface
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -301,14 +300,14 @@ private fun ScoreboardBar(
                         onClick = { if (uiState.isTimerRunning) onPauseTimer() else onStartTimer() },
                         modifier = Modifier.size(32.dp),
                         colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = if (uiState.isTimerRunning) Color(0xFFF44336) else Color(0xFF4CAF50)
+                            containerColor = if (uiState.isTimerRunning) LocalAppColors.current.timerPaused else LocalAppColors.current.timerRunning
                         )
                     ) {
                         Icon(
                             if (uiState.isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                     // End Quarter
@@ -319,14 +318,14 @@ private fun ScoreboardBar(
                             containerColor = MaterialTheme.colorScheme.secondary
                         )
                     ) {
-                        Icon(Icons.Default.Stop, contentDescription = "End Quarter", modifier = Modifier.size(18.dp), tint = Color.White)
+                        Icon(Icons.Default.Stop, contentDescription = "End Quarter", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSecondary)
                     }
                 }
             }
 
             // Review events button
             IconButton(onClick = onOpenEventsReview, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.List, contentDescription = "Review Events", modifier = Modifier.size(20.dp), tint = Color.Black)
+                Icon(Icons.Default.List, contentDescription = "Review Events", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
             }
 
             // Away team + score
@@ -340,7 +339,7 @@ private fun ScoreboardBar(
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "${uiState.awayScore}",
@@ -507,7 +506,7 @@ private fun PlayerTrackingHalf(
 
             // Bench row
             if (bench.isNotEmpty()) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -588,10 +587,10 @@ private fun TeamTrackingHalf(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
                 .clickable { onTeamClick() },
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = MaterialTheme.shapes.medium,
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
             )
         ) {
             Column(
@@ -611,7 +610,7 @@ private fun TeamTrackingHalf(
                     fontWeight = FontWeight.Bold
                 )
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 val fgm = events.count { it.eventType == GameEventType.TWO_POINTER_MADE || it.eventType == GameEventType.THREE_POINTER_MADE }
                 val fga = fgm + events.count { it.eventType == GameEventType.TWO_POINTER_MISSED || it.eventType == GameEventType.THREE_POINTER_MISSED }
@@ -642,8 +641,8 @@ private fun TeamTrackingHalf(
 @Composable
 private fun StatChip(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = value, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Text(text = label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+        Text(text = value, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
     }
 }
 
@@ -666,9 +665,9 @@ private fun EventModal(
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = MaterialTheme.shapes.medium,
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
             modifier = Modifier.widthIn(max = 420.dp)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
@@ -693,18 +692,18 @@ private fun EventModal(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Scoring buttons
-                Text("Scoring", style = MaterialTheme.typography.labelMedium, color = Color.Black.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 8.dp))
+                Text("Scoring", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    EventButton("2PT ✓", Color(0xFF4CAF50), Modifier.weight(1f)) {
+                    EventButton("2PT ✓", LocalAppColors.current.twoPointer, Modifier.weight(1f)) {
                         onEventSelected(GameEventType.TWO_POINTER_MADE, 2)
                     }
-                    EventButton("3PT ✓", Color(0xFF2196F3), Modifier.weight(1f)) {
+                    EventButton("3PT ✓", LocalAppColors.current.threePointer, Modifier.weight(1f)) {
                         onEventSelected(GameEventType.THREE_POINTER_MADE, 3)
                     }
-                    EventButton("FT ✓", Color(0xFFFF9800), Modifier.weight(1f)) {
+                    EventButton("FT ✓", LocalAppColors.current.freeThrow, Modifier.weight(1f)) {
                         onEventSelected(GameEventType.FREE_THROW_MADE, 1)
                     }
                 }
@@ -727,7 +726,7 @@ private fun EventModal(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Other events
-                Text("Other", style = MaterialTheme.typography.labelMedium, color = Color.Black.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 8.dp))
+                Text("Other", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -773,10 +772,10 @@ private fun EventButton(
         onClick = onClick,
         modifier = modifier.height(40.dp),
         colors = ButtonDefaults.buttonColors(containerColor = color),
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.small,
         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
     ) {
-        Text(text, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+        Text(text, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimary)
     }
 }
 
@@ -789,10 +788,10 @@ private fun OutlinedEventButton(
     OutlinedButton(
         onClick = onClick,
         modifier = modifier.height(40.dp),
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.small,
         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
     ) {
-        Text(text, fontSize = 12.sp)
+        Text(text, style = MaterialTheme.typography.labelMedium)
     }
 }
 
@@ -820,9 +819,9 @@ private fun EventsReviewDialog(
 ) {
     Dialog(onDismissRequest = onClose) {
         Card(
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = MaterialTheme.shapes.medium,
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = 480.dp)
@@ -845,7 +844,7 @@ private fun EventsReviewDialog(
                         Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 }
-                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
 
                 if (uiState.gameEvents.isEmpty()) {
                     Box(
@@ -913,7 +912,6 @@ private fun EventsReviewDialog(
                                     )
                                 }
                             }
-                            HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
                         }
                     }
                 }

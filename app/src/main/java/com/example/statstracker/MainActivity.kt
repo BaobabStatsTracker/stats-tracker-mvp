@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.launch
 import com.example.statstracker.ui.components.AppHeader
 import com.example.statstracker.ui.components.AppDrawerContent
@@ -71,7 +70,6 @@ class MainActivity : ComponentActivity() {
                     "dashboard" -> {
                         if (isTablet) {
                             Scaffold(
-                                contentWindowInsets = WindowInsets(0),
                                 topBar = { AppHeader(isTablet = true, onMenuClick = {}) }
                             ) { innerPadding ->
                                 Row(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
@@ -87,7 +85,7 @@ class MainActivity : ComponentActivity() {
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .background(Color(0xFFF2F2F2))
+                                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
                                     )
                                 }
                             }
@@ -105,7 +103,6 @@ class MainActivity : ComponentActivity() {
                                 }
                             ) {
                                 Scaffold(
-                                    contentWindowInsets = WindowInsets(0),
                                     topBar = {
                                         AppHeader(
                                             isTablet = false,

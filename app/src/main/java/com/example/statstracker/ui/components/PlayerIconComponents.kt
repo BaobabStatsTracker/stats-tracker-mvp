@@ -23,8 +23,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.example.statstracker.ui.theme.LocalAppColors
 import kotlin.math.roundToInt
 
 /**
@@ -139,21 +139,21 @@ fun PlayerIcon(
                 // Highlight border when this icon is the nearest drop target
                 .border(
                     width = if (isHighlighted) 4.dp else 2.dp,
-                    color = if (isHighlighted) Color(0xFFFFD600) else accentColor,
+                    color = if (isHighlighted) LocalAppColors.current.playerHighlight else accentColor,
                     shape = CircleShape
                 )
         ) {
             Text(
                 text = if (jerseyNumber > 0) "$jerseyNumber" else "?",
-                color = Color.White,
-                fontSize = if (isOnCourt) 20.sp else 14.sp,
+                color = MaterialTheme.colorScheme.onPrimary,
+                style = if (isOnCourt) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
         }
         Text(
             text = playerName,
-            fontSize = if (isOnCourt) 10.sp else 8.sp,
+            style = if (isOnCourt) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
