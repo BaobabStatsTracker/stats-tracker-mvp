@@ -1,5 +1,6 @@
 package com.example.statstracker.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,12 +10,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.statstracker.ui.theme.LocalAppColors
@@ -27,7 +30,11 @@ import com.example.statstracker.database.repository.BasketballRepository
 import com.example.statstracker.model.GameEventType
 import com.example.statstracker.model.GameTeamSide
 import com.example.statstracker.model.TrackingMode
+import com.example.statstracker.ui.util.exportGamePdf
 import com.example.statstracker.ui.viewmodel.GameDetailViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,6 +48,9 @@ fun GameScreen(
     val uiState by viewModel.uiState.collectAsState()
     var selectedTabIndex by remember { mutableStateOf(0) }
     var selectedPlayer by remember { mutableStateOf<Pair<Player, PlayerGameStats?>?>(null) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isExporting by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -54,6 +64,51 @@ fun GameScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (uiState.gameWithDetails != null) {
+                        IconButton(
+                            onClick = {
+                                if (!isExporting) {
+                                    isExporting = true
+                                    coroutineScope.launch {
+                                        try {
+                                            val state = uiState
+                                            val fileName = withContext(Dispatchers.IO) {
+                                                exportGamePdf(
+                                                    context = context,
+                                                    gameWithDetails = state.gameWithDetails!!,
+                                                    teamStats = state.teamStats,
+                                                    playerStats = state.playerStats,
+                                                    homePlayers = state.homePlayers,
+                                                    awayPlayers = state.awayPlayers
+                                                )
+                                            }
+                                            Toast.makeText(
+                                                context,
+                                                "PDF saved to Downloads: $fileName",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        } catch (e: Exception) {
+                                            Toast.makeText(
+                                                context,
+                                                "Failed to export PDF: ${e.message}",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        } finally {
+                                            isExporting = false
+                                        }
+                                    }
+                                }
+                            },
+                            enabled = !isExporting
+                        ) {
+                            Icon(
+                                Icons.Default.PictureAsPdf,
+                                contentDescription = "Export as PDF"
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
