@@ -26,9 +26,9 @@ fun exportGamePdf(
     homePlayers: List<Player>,
     awayPlayers: List<Player>
 ): String {
-    val pageWidth = 595  // A4 portrait in points
-    val pageHeight = 842
-    val margin = 40f
+    val pageWidth = 842   // A4 landscape in points
+    val pageHeight = 595
+    val margin = 30f
     val contentWidth = pageWidth - 2 * margin
 
     val document = PdfDocument()
@@ -54,12 +54,12 @@ fun exportGamePdf(
         isAntiAlias = true
     }
     val headerPaint = Paint().apply {
-        textSize = 10f
+        textSize = 7f
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         isAntiAlias = true
     }
     val cellPaint = Paint().apply {
-        textSize = 10f
+        textSize = 7f
         isAntiAlias = true
     }
     val linePaint = Paint().apply {
@@ -121,21 +121,35 @@ fun exportGamePdf(
             return
         }
 
-        // Table columns: Name | PTS | FG | 3PT | FT | REB | AST | STL | BLK | TO | PF | MIN
-        val columns = listOf(
-            "Player" to 110f,
-            "PTS" to 30f,
-            "FG" to 45f,
-            "3PT" to 45f,
-            "FT" to 45f,
-            "REB" to 30f,
-            "AST" to 30f,
-            "STL" to 30f,
-            "BLK" to 30f,
-            "TO" to 28f,
-            "PF" to 28f,
-            "MIN" to 34f
+        // Table columns: Player | MIN | PTS | FGM/FGA | FG% | 3PM/3PA | 3P% | 2PM/2PA | 2P% | FTM/FTA | FT% | OREB | DREB | REB | AST | TOV | STL | BLK | PF | PIR | EFF | +/-
+        // Relative weights; scaled below so they fill contentWidth exactly.
+        val rawColumns = listOf(
+            "Player" to 80f,
+            "MIN" to 30f,
+            "PTS" to 24f,
+            "FGM/FGA" to 38f,
+            "FG%" to 28f,
+            "3PM/3PA" to 38f,
+            "3P%" to 28f,
+            "2PM/2PA" to 38f,
+            "2P%" to 28f,
+            "FTM/FTA" to 38f,
+            "FT%" to 28f,
+            "OREB" to 28f,
+            "DREB" to 28f,
+            "REB" to 24f,
+            "AST" to 24f,
+            "TOV" to 24f,
+            "STL" to 24f,
+            "BLK" to 24f,
+            "PF" to 22f,
+            "PIR" to 24f,
+            "EFF" to 24f,
+            "+/-" to 26f
         )
+        val rawTotal = rawColumns.sumOf { it.second.toDouble() }.toFloat()
+        val scale = contentWidth / rawTotal
+        val columns = rawColumns.map { (name, w) -> name to w * scale }
 
         // Draw header row
         y = ensureSpace(18f)
@@ -151,8 +165,9 @@ fun exportGamePdf(
         // Accumulators for totals
         var totPts = 0; var totFgm = 0; var totFga = 0
         var totTpm = 0; var totTpa = 0; var totFtm = 0; var totFta = 0
-        var totReb = 0; var totAst = 0; var totStl = 0
+        var totOreb = 0; var totDreb = 0; var totReb = 0; var totAst = 0; var totStl = 0
         var totBlk = 0; var totTo = 0; var totPf = 0
+        var totPir = 0; var totEff = 0; var totPlusMinus = 0
 
         // Draw player rows
         for (player in players) {
@@ -164,26 +179,45 @@ fun exportGamePdf(
             totFgm += ps.fieldGoalsMade; totFga += ps.fieldGoalsAttempted
             totTpm += ps.threePointersMade; totTpa += ps.threePointersAttempted
             totFtm += ps.freeThrowsMade; totFta += ps.freeThrowsAttempted
+            totOreb += ps.reboundsOffensive; totDreb += ps.reboundsDefensive
             totReb += ps.totalRebounds; totAst += ps.assists
             totStl += ps.steals; totBlk += ps.blocks
             totTo += ps.turnovers; totPf += ps.foulsPersonal
+            totPir += ps.pir; totEff += ps.efficiency
+            totPlusMinus += ps.plusMinus
 
             val name = "${player.firstName.first()}. ${player.lastName}"
-            val truncatedName = if (name.length > 16) name.take(15) + "\u2026" else name
+            val truncatedName = if (name.length > 12) name.take(11) + "\u2026" else name
+
+            val fgPct = if (ps.fieldGoalsAttempted > 0) String.format("%.1f", ps.fieldGoalPercentage * 100) else "-"
+            val tpPct = if (ps.threePointersAttempted > 0) String.format("%.1f", ps.threePointPercentage * 100) else "-"
+            val twoPct = if (ps.twoPointersAttempted > 0) String.format("%.1f", ps.twoPointPercentage * 100) else "-"
+            val ftPct = if (ps.freeThrowsAttempted > 0) String.format("%.1f", ps.freeThrowPercentage * 100) else "-"
+            val pmStr = if (ps.plusMinus >= 0) "+${ps.plusMinus}" else "${ps.plusMinus}"
 
             val values = listOf(
                 truncatedName,
+                formatMinutes(ps.timePlayedSeconds),
                 "${ps.points}",
                 "${ps.fieldGoalsMade}/${ps.fieldGoalsAttempted}",
+                fgPct,
                 "${ps.threePointersMade}/${ps.threePointersAttempted}",
+                tpPct,
+                "${ps.twoPointersMade}/${ps.twoPointersAttempted}",
+                twoPct,
                 "${ps.freeThrowsMade}/${ps.freeThrowsAttempted}",
+                ftPct,
+                "${ps.reboundsOffensive}",
+                "${ps.reboundsDefensive}",
                 "${ps.totalRebounds}",
                 "${ps.assists}",
+                "${ps.turnovers}",
                 "${ps.steals}",
                 "${ps.blocks}",
-                "${ps.turnovers}",
                 "${ps.foulsPersonal}",
-                formatMinutes(ps.timePlayedSeconds)
+                "${ps.pir}",
+                "${ps.efficiency}",
+                pmStr
             )
 
             for (i in columns.indices) {
@@ -199,19 +233,37 @@ fun exportGamePdf(
         y += 4f
         x = margin
 
+        val totFgPct = if (totFga > 0) String.format("%.1f", totFgm.toDouble() / totFga * 100) else "-"
+        val totTpPct = if (totTpa > 0) String.format("%.1f", totTpm.toDouble() / totTpa * 100) else "-"
+        val tot2pm = totFgm - totTpm
+        val tot2pa = totFga - totTpa
+        val totTwoPct = if (tot2pa > 0) String.format("%.1f", tot2pm.toDouble() / tot2pa * 100) else "-"
+        val totFtPct = if (totFta > 0) String.format("%.1f", totFtm.toDouble() / totFta * 100) else "-"
+        val totPmStr = if (totPlusMinus >= 0) "+$totPlusMinus" else "$totPlusMinus"
+
         val totalValues = listOf(
             "TOTAL",
+            "",  // no total for minutes
             "$totPts",
             "$totFgm/$totFga",
+            totFgPct,
             "$totTpm/$totTpa",
+            totTpPct,
+            "$tot2pm/$tot2pa",
+            totTwoPct,
             "$totFtm/$totFta",
+            totFtPct,
+            "$totOreb",
+            "$totDreb",
             "$totReb",
             "$totAst",
+            "$totTo",
             "$totStl",
             "$totBlk",
-            "$totTo",
             "$totPf",
-            ""  // no total for minutes
+            "$totPir",
+            "$totEff",
+            totPmStr
         )
 
         for (i in columns.indices) {

@@ -194,8 +194,10 @@ class GameDetailViewModel(
                 GameEventType.FREE_THROW_MISSED -> {
                     stats["freeThrowsAttempted"] = stats["freeThrowsAttempted"]!! + 1
                 }
-                GameEventType.REBOUND -> {
-                    // For now, count all rebounds as defensive - this could be improved
+                GameEventType.OFFENSIVE_REBOUND -> {
+                    stats["reboundsOffensive"] = stats["reboundsOffensive"]!! + 1
+                }
+                GameEventType.DEFENSIVE_REBOUND -> {
                     stats["reboundsDefensive"] = stats["reboundsDefensive"]!! + 1
                 }
                 GameEventType.ASSIST -> {
@@ -219,6 +221,43 @@ class GameDetailViewModel(
             }
         }
         
+        // +/- calculation: process events chronologically tracking on-court players
+        val playerPlusMinus = mutableMapOf<Long, Int>()
+        val homeOnCourt = mutableSetOf<Long>()
+        val awayOnCourt = mutableSetOf<Long>()
+
+        events.sortedBy { it.timestamp }.forEach { event ->
+            when (event.eventType) {
+                GameEventType.SUBSTITUTION -> {
+                    val enteredId = event.playerId ?: return@forEach
+                    val leftId = event.assistPlayerId
+                    val onCourt = if (event.team == GameTeamSide.HOME) homeOnCourt else awayOnCourt
+                    onCourt.add(enteredId)
+                    if (leftId != null) onCourt.remove(leftId)
+                }
+                GameEventType.TWO_POINTER_MADE,
+                GameEventType.THREE_POINTER_MADE,
+                GameEventType.FREE_THROW_MADE -> {
+                    val points = when (event.eventType) {
+                        GameEventType.TWO_POINTER_MADE -> 2
+                        GameEventType.THREE_POINTER_MADE -> 3
+                        GameEventType.FREE_THROW_MADE -> 1
+                        else -> 0
+                    }
+                    val scoringTeam = event.team
+                    for (pid in homeOnCourt) {
+                        val delta = if (scoringTeam == GameTeamSide.HOME) points else -points
+                        playerPlusMinus[pid] = (playerPlusMinus[pid] ?: 0) + delta
+                    }
+                    for (pid in awayOnCourt) {
+                        val delta = if (scoringTeam == GameTeamSide.AWAY) points else -points
+                        playerPlusMinus[pid] = (playerPlusMinus[pid] ?: 0) + delta
+                    }
+                }
+                else -> { /* no +/- change */ }
+            }
+        }
+
         // Convert to PlayerGameStats objects
         // Merge stat-event players and substitution-only players (who may have
         // court time but no other stat events)
@@ -255,6 +294,7 @@ class GameDetailViewModel(
                 blocks = stats?.get("blocks") ?: 0,
                 turnovers = stats?.get("turnovers") ?: 0,
                 foulsPersonal = stats?.get("foulsPersonal") ?: 0,
+                plusMinus = playerPlusMinus[playerId] ?: 0,
                 timePlayedSeconds = playerTimeSeconds[playerId] ?: 0
             )
         }

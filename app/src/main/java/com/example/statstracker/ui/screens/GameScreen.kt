@@ -599,21 +599,29 @@ private fun PlayerStatsDialog(
                             )
                         }
                         
-                        StatRow("Points", "${stats.points}")
-                        StatRow("Field Goals", "${stats.fieldGoalsMade}/${stats.fieldGoalsAttempted}")
-                        StatRow("3-Pointers", "${stats.threePointersMade}/${stats.threePointersAttempted}")
-                        StatRow("Free Throws", "${stats.freeThrowsMade}/${stats.freeThrowsAttempted}")
-                        StatRow("Rebounds", "${stats.reboundsOffensive + stats.reboundsDefensive}")
-                        StatRow("Offensive Reb", "${stats.reboundsOffensive}")
-                        StatRow("Defensive Reb", "${stats.reboundsDefensive}")
-                        StatRow("Assists", "${stats.assists}")
-                        StatRow("Steals", "${stats.steals}")
-                        StatRow("Blocks", "${stats.blocks}")
-                        StatRow("Turnovers", "${stats.turnovers}")
-                        StatRow("Personal Fouls", "${stats.foulsPersonal}")
-                        if (stats.timePlayedSeconds > 0) {
-                            StatRow("Time Played", "${stats.timePlayedSeconds / 60}:${String.format("%02d", stats.timePlayedSeconds % 60)}")
-                        }
+                        val min = stats.timePlayedSeconds / 60
+                        val sec = stats.timePlayedSeconds % 60
+                        StatRow("MIN", "$min:${String.format("%02d", sec)}")
+                        StatRow("PTS", "${stats.points}")
+                        StatRow("FGM/FGA", "${stats.fieldGoalsMade}/${stats.fieldGoalsAttempted}")
+                        StatRow("FG%", if (stats.fieldGoalsAttempted > 0) String.format("%.1f%%", stats.fieldGoalPercentage * 100) else "-")
+                        StatRow("3PM/3PA", "${stats.threePointersMade}/${stats.threePointersAttempted}")
+                        StatRow("3P%", if (stats.threePointersAttempted > 0) String.format("%.1f%%", stats.threePointPercentage * 100) else "-")
+                        StatRow("2PM/2PA", "${stats.twoPointersMade}/${stats.twoPointersAttempted}")
+                        StatRow("2P%", if (stats.twoPointersAttempted > 0) String.format("%.1f%%", stats.twoPointPercentage * 100) else "-")
+                        StatRow("FTM/FTA", "${stats.freeThrowsMade}/${stats.freeThrowsAttempted}")
+                        StatRow("FT%", if (stats.freeThrowsAttempted > 0) String.format("%.1f%%", stats.freeThrowPercentage * 100) else "-")
+                        StatRow("OREB", "${stats.reboundsOffensive}")
+                        StatRow("DREB", "${stats.reboundsDefensive}")
+                        StatRow("REB", "${stats.totalRebounds}")
+                        StatRow("AST", "${stats.assists}")
+                        StatRow("TOV", "${stats.turnovers}")
+                        StatRow("STL", "${stats.steals}")
+                        StatRow("BLK", "${stats.blocks}")
+                        StatRow("PF", "${stats.foulsPersonal}")
+                        StatRow("PIR", "${stats.pir}")
+                        StatRow("EFF", "${stats.efficiency}")
+                        StatRow("+/-", if (stats.plusMinus >= 0) "+${stats.plusMinus}" else "${stats.plusMinus}")
                     }
                 } else {
                     Text(
@@ -653,7 +661,8 @@ private fun eventLabel(eventType: GameEventType): String = when (eventType) {
     GameEventType.THREE_POINTER_MISSED -> "3PT Missed"
     GameEventType.FREE_THROW_MADE -> "Free Throw"
     GameEventType.FREE_THROW_MISSED -> "Free Throw Missed"
-    GameEventType.REBOUND -> "Rebound"
+    GameEventType.OFFENSIVE_REBOUND -> "Off Rebound"
+    GameEventType.DEFENSIVE_REBOUND -> "Def Rebound"
     GameEventType.ASSIST -> "Assist"
     GameEventType.STEAL -> "Steal"
     GameEventType.BLOCK -> "Block"

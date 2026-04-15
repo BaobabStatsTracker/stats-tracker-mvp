@@ -468,6 +468,16 @@ data class PlayerGameStats(
         get() = if (threePointersAttempted > 0) threePointersMade.toDouble() / threePointersAttempted else 0.0
     val freeThrowPercentage: Double 
         get() = if (freeThrowsAttempted > 0) freeThrowsMade.toDouble() / freeThrowsAttempted else 0.0
+    val twoPointersMade: Int get() = fieldGoalsMade - threePointersMade
+    val twoPointersAttempted: Int get() = fieldGoalsAttempted - threePointersAttempted
+    val twoPointPercentage: Double
+        get() = if (twoPointersAttempted > 0) twoPointersMade.toDouble() / twoPointersAttempted else 0.0
+    val pir: Int
+        get() = (points + totalRebounds + assists + steals + blocks) -
+                ((fieldGoalsAttempted - fieldGoalsMade) + (freeThrowsAttempted - freeThrowsMade) + turnovers + foulsPersonal)
+    val efficiency: Int
+        get() = (points + totalRebounds + assists + steals + blocks) -
+                (fieldGoalsAttempted - fieldGoalsMade) - (freeThrowsAttempted - freeThrowsMade) - turnovers
 }
 
 // --- PlayerSeasonStats Entity ---

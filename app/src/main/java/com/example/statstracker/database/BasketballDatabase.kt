@@ -25,7 +25,7 @@ import com.example.statstracker.database.entity.*
         PlayerGameStats::class,
         PlayerSeasonStats::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -55,6 +55,12 @@ abstract class BasketballDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("UPDATE game_event SET event_type = 'DEFENSIVE_REBOUND' WHERE event_type = 'REBOUND'")
+            }
+        }
+
         fun getInstance(context: Context): BasketballDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -63,7 +69,7 @@ abstract class BasketballDatabase : RoomDatabase() {
                     "basketball_stats.db"
                 )
                 .fallbackToDestructiveMigration()
-                .addMigrations(MIGRATION_3_4)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
                 .build()
                 INSTANCE = instance
                 instance

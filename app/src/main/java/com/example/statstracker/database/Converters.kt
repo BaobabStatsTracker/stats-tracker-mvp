@@ -53,6 +53,7 @@ class Converters {
     
     @TypeConverter
     fun toGameEventType(eventTypeString: String): GameEventType {
+        if (eventTypeString == "REBOUND") return GameEventType.DEFENSIVE_REBOUND
         return GameEventType.valueOf(eventTypeString)
     }
     

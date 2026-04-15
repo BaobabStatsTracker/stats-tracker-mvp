@@ -614,7 +614,7 @@ private fun TeamTrackingHalf(
 
                 val fgm = events.count { it.eventType == GameEventType.TWO_POINTER_MADE || it.eventType == GameEventType.THREE_POINTER_MADE }
                 val fga = fgm + events.count { it.eventType == GameEventType.TWO_POINTER_MISSED || it.eventType == GameEventType.THREE_POINTER_MISSED }
-                val reb = events.count { it.eventType == GameEventType.REBOUND }
+                val reb = events.count { it.eventType == GameEventType.OFFENSIVE_REBOUND || it.eventType == GameEventType.DEFENSIVE_REBOUND }
                 val ast = events.count { it.eventType == GameEventType.ASSIST }
                 val to = events.count { it.eventType == GameEventType.TURNOVER }
 
@@ -731,12 +731,21 @@ private fun EventModal(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    OutlinedEventButton("Rebound", Modifier.weight(1f)) {
-                        onEventSelected(GameEventType.REBOUND, null)
+                    OutlinedEventButton("Off Reb", Modifier.weight(1f)) {
+                        onEventSelected(GameEventType.OFFENSIVE_REBOUND, null)
+                    }
+                    OutlinedEventButton("Def Reb", Modifier.weight(1f)) {
+                        onEventSelected(GameEventType.DEFENSIVE_REBOUND, null)
                     }
                     OutlinedEventButton("Assist", Modifier.weight(1f)) {
                         onEventSelected(GameEventType.ASSIST, null)
                     }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     OutlinedEventButton("Steal", Modifier.weight(1f)) {
                         onEventSelected(GameEventType.STEAL, null)
                     }
@@ -802,7 +811,8 @@ private fun eventLabel(eventType: GameEventType): String = when (eventType) {
     GameEventType.THREE_POINTER_MISSED -> "3PT Missed"
     GameEventType.FREE_THROW_MADE -> "FT Made"
     GameEventType.FREE_THROW_MISSED -> "FT Missed"
-    GameEventType.REBOUND -> "Rebound"
+    GameEventType.OFFENSIVE_REBOUND -> "Off Rebound"
+    GameEventType.DEFENSIVE_REBOUND -> "Def Rebound"
     GameEventType.ASSIST -> "Assist"
     GameEventType.STEAL -> "Steal"
     GameEventType.BLOCK -> "Block"
