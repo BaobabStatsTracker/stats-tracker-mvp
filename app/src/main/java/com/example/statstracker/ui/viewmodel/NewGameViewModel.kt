@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.statstracker.database.entity.Game
 import com.example.statstracker.database.entity.Player
+import com.example.statstracker.database.entity.PlayerGameStats
 import com.example.statstracker.database.entity.Team
 import com.example.statstracker.database.repository.BasketballRepository
 import com.example.statstracker.model.GameTeamSide
@@ -158,12 +159,10 @@ class NewGameViewModel(
         viewModelScope.launch {
             try {
                 val players = repository.getPlayersForTeam(teamId)
-                val teamPlayers = repository.getTeamPlayersForTeam(teamId)
-                val jerseyMap = teamPlayers.associate { it.playerId to (it.jerseyNum ?: 0) }
                 val playersWithJersey = players.map { player ->
                     PlayerWithJersey(
                         player = player,
-                        jerseyNumber = jerseyMap[player.id] ?: 0,
+                        jerseyNumber = player.jerseyNumber ?: 0,
                         isSelected = true
                     )
                 }
@@ -285,6 +284,36 @@ class NewGameViewModel(
                     awaySelectedPlayerIds = awaySelectedIds
                 )
                 val gameId = repository.insertGame(game)
+
+                // Insert stub PlayerGameStats for each selected player so the jersey number is persisted
+                val homeSelected = if (s.homeTrackingMode == TrackingMode.BY_PLAYER)
+                    s.homePlayers.filter { it.isSelected } else emptyList()
+                val awaySelected = if (s.awayTrackingMode == TrackingMode.BY_PLAYER)
+                    s.awayPlayers.filter { it.isSelected } else emptyList()
+
+                for (pwj in homeSelected) {
+                    repository.upsertPlayerGameStats(
+                        PlayerGameStats(
+                            gameId = gameId,
+                            playerId = pwj.player.id,
+                            teamId = homeTeamId,
+                            quarter = null,
+                            jerseyNumber = pwj.jerseyNumber.takeIf { it != 0 }
+                        )
+                    )
+                }
+                for (pwj in awaySelected) {
+                    repository.upsertPlayerGameStats(
+                        PlayerGameStats(
+                            gameId = gameId,
+                            playerId = pwj.player.id,
+                            teamId = awayTeamId,
+                            quarter = null,
+                            jerseyNumber = pwj.jerseyNumber.takeIf { it != 0 }
+                        )
+                    )
+                }
+
                 _uiState.value = s.copy(isLoading = false)
                 onGameCreated(gameId)
             } catch (e: Exception) {

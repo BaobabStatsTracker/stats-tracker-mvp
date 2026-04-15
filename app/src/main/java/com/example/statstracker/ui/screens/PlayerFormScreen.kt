@@ -63,6 +63,7 @@ import java.time.format.DateTimeParseException
 data class PlayerFormUiState(
     val firstName: String = "",
     val lastName: String = "",
+    val jerseyText: String = "",
     val heightText: String = "",
     val wingspanText: String = "",
     val selectedHand: PrimaryHand? = null,
@@ -108,6 +109,7 @@ class PlayerFormViewModel(
                 _uiState.value = _uiState.value.copy(
                     firstName = player.firstName,
                     lastName = player.lastName,
+                    jerseyText = player.jerseyNumber?.toString() ?: "",
                     heightText = player.heightCm?.toString() ?: "",
                     wingspanText = player.wingspanCm?.toString() ?: "",
                     selectedHand = player.primaryHand,
@@ -153,6 +155,10 @@ class PlayerFormViewModel(
         _uiState.value = _uiState.value.copy(imageUrl = value)
     }
 
+    fun updateJerseyText(value: String) {
+        _uiState.value = _uiState.value.copy(jerseyText = value.filter { it.isDigit() }.take(2))
+    }
+
     fun updateNotes(value: String) {
         _uiState.value = _uiState.value.copy(notes = value)
     }
@@ -176,6 +182,7 @@ class PlayerFormViewModel(
                             id = playerId,
                             firstName = state.firstName.trim(),
                             lastName = state.lastName.trim(),
+                            jerseyNumber = state.jerseyText.toIntOrNull(),
                             heightCm = state.heightText.toIntOrNull(),
                             wingspanCm = state.wingspanText.toIntOrNull(),
                             primaryHand = state.selectedHand,
@@ -190,6 +197,7 @@ class PlayerFormViewModel(
                         Player(
                             firstName = state.firstName.trim(),
                             lastName = state.lastName.trim(),
+                            jerseyNumber = state.jerseyText.toIntOrNull(),
                             heightCm = state.heightText.toIntOrNull(),
                             wingspanCm = state.wingspanText.toIntOrNull(),
                             primaryHand = state.selectedHand,
@@ -290,6 +298,7 @@ fun PlayerFormScreen(
                     onWingspanChange = viewModel::updateWingspanText,
                     onHandChange = viewModel::updatePrimaryHand,
                     onBirthDateChange = viewModel::updateBirthDateText,
+                    onJerseyChange = viewModel::updateJerseyText,
                     onImageUrlChange = viewModel::updateImageUrl,
                     onNotesChange = viewModel::updateNotes,
                     onSave = viewModel::savePlayer,
@@ -311,6 +320,7 @@ private fun PlayerFormContent(
     onWingspanChange: (String) -> Unit,
     onHandChange: (PrimaryHand?) -> Unit,
     onBirthDateChange: (String) -> Unit,
+    onJerseyChange: (String) -> Unit,
     onImageUrlChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
     onSave: () -> Unit,
@@ -417,6 +427,17 @@ private fun PlayerFormContent(
                 onValueChange = onBirthDateChange,
                 label = { Text("Date of Birth (yyyy-mm-dd)") },
                 placeholder = { Text("1995-01-15") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
+
+        item {
+            OutlinedTextField(
+                value = uiState.jerseyText,
+                onValueChange = onJerseyChange,
+                label = { Text("Jersey Number") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )

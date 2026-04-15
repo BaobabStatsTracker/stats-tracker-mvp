@@ -121,9 +121,10 @@ fun exportGamePdf(
             return
         }
 
-        // Table columns: Player | MIN | PTS | FGM/FGA | FG% | 3PM/3PA | 3P% | 2PM/2PA | 2P% | FTM/FTA | FT% | OREB | DREB | REB | AST | TOV | STL | BLK | PF | PIR | EFF | +/-
+        // Table columns: # | Player | MIN | PTS | FGM/FGA | FG% | 3PM/3PA | 3P% | 2PM/2PA | 2P% | FTM/FTA | FT% | OREB | DREB | REB | AST | TOV | STL | BLK | PF | PIR | EFF | +/-
         // Relative weights; scaled below so they fill contentWidth exactly.
         val rawColumns = listOf(
+            "#" to 22f,
             "Player" to 80f,
             "MIN" to 30f,
             "PTS" to 24f,
@@ -196,6 +197,7 @@ fun exportGamePdf(
             val pmStr = if (ps.plusMinus >= 0) "+${ps.plusMinus}" else "${ps.plusMinus}"
 
             val values = listOf(
+                ps.jerseyNumber?.toString() ?: "-",
                 truncatedName,
                 formatMinutes(ps.timePlayedSeconds),
                 "${ps.points}",

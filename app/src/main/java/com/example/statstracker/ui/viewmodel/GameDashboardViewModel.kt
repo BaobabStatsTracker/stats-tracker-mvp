@@ -59,14 +59,16 @@ class GameDashboardViewModel(
                     if (!selectedIds.isNullOrEmpty()) all.filter { it.id in selectedIds } else all
                 } else emptyList()
 
-                // Load jersey numbers
-                val homeTeamPlayers = if (game.homeTrackingMode == TrackingMode.BY_PLAYER)
-                    repository.getTeamPlayersForTeam(game.homeTeamId) else emptyList()
-                val awayTeamPlayers = if (game.awayTrackingMode == TrackingMode.BY_PLAYER)
-                    repository.getTeamPlayersForTeam(game.awayTeamId) else emptyList()
+                // Load jersey numbers from PlayerGameStats (game-specific), fall back to Player.jerseyNumber
+                val existingPlayerStats = repository.getAllPlayerStatsForGame(gameId)
+                val statsJerseyMap = existingPlayerStats.associate { it.playerId to it.jerseyNumber }
 
-                val homeJerseys = homeTeamPlayers.associate { it.playerId to (it.jerseyNum ?: 0) }
-                val awayJerseys = awayTeamPlayers.associate { it.playerId to (it.jerseyNum ?: 0) }
+                val homeJerseys = homePlayers.associate { player ->
+                    player.id to (statsJerseyMap[player.id] ?: player.jerseyNumber ?: 0)
+                }
+                val awayJerseys = awayPlayers.associate { player ->
+                    player.id to (statsJerseyMap[player.id] ?: player.jerseyNumber ?: 0)
+                }
 
                 // Split players into on-court (first 5) and bench (rest)
                 val homeOnCourt = homePlayers.take(5).map { it.id }

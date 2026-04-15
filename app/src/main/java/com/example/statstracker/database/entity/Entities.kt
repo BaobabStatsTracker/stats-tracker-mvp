@@ -48,7 +48,10 @@ data class Player(
     val dateOfBirth: LocalDate? = null,
 
     @ColumnInfo(name = "notes")
-    val notes: String? = null
+    val notes: String? = null,
+
+    @ColumnInfo(name = "jersey_number")
+    val jerseyNumber: Int? = null
 )
 
 // --- Team Entity ---
@@ -458,7 +461,10 @@ data class PlayerGameStats(
     
     // Shot Chart Data (JSON string)
     @ColumnInfo(name = "shot_chart_data")
-    val shotChartData: String? = null
+    val shotChartData: String? = null,
+
+    @ColumnInfo(name = "jersey_number")
+    val jerseyNumber: Int? = null
 ) {
     // Computed properties
     val totalRebounds: Int get() = reboundsOffensive + reboundsDefensive
