@@ -612,20 +612,46 @@ private fun TeamTrackingHalf(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                val fgm = events.count { it.eventType == GameEventType.TWO_POINTER_MADE || it.eventType == GameEventType.THREE_POINTER_MADE }
-                val fga = fgm + events.count { it.eventType == GameEventType.TWO_POINTER_MISSED || it.eventType == GameEventType.THREE_POINTER_MISSED }
-                val reb = events.count { it.eventType == GameEventType.OFFENSIVE_REBOUND || it.eventType == GameEventType.DEFENSIVE_REBOUND }
+                val twoM = events.count { it.eventType == GameEventType.TWO_POINTER_MADE }
+                val twoA = twoM + events.count { it.eventType == GameEventType.TWO_POINTER_MISSED }
+                val threeM = events.count { it.eventType == GameEventType.THREE_POINTER_MADE }
+                val threeA = threeM + events.count { it.eventType == GameEventType.THREE_POINTER_MISSED }
+                val fgm = twoM + threeM
+                val fga = twoA + threeA
+                val ftm = events.count { it.eventType == GameEventType.FREE_THROW_MADE }
+                val fta = ftm + events.count { it.eventType == GameEventType.FREE_THROW_MISSED }
+                val oreb = events.count { it.eventType == GameEventType.OFFENSIVE_REBOUND }
+                val dreb = events.count { it.eventType == GameEventType.DEFENSIVE_REBOUND }
                 val ast = events.count { it.eventType == GameEventType.ASSIST }
+                val stl = events.count { it.eventType == GameEventType.STEAL }
+                val blk = events.count { it.eventType == GameEventType.BLOCK }
                 val to = events.count { it.eventType == GameEventType.TURNOVER }
+                val pf = events.count { it.eventType == GameEventType.FOUL }
 
+                // Row 1: shooting
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     StatChip("FG", "$fgm/$fga")
-                    StatChip("REB", "$reb")
+                    StatChip("3PT", "$threeM/$threeA")
+                    StatChip("FT", "$ftm/$fta")
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Row 2: other stats
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatChip("OREB", "$oreb")
+                    StatChip("DREB", "$dreb")
                     StatChip("AST", "$ast")
+                    StatChip("STL", "$stl")
+                    StatChip("BLK", "$blk")
                     StatChip("TO", "$to")
+                    StatChip("PF", "$pf")
                 }
 
                 Text(
